@@ -1,0 +1,221 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+require 'bundler/setup'
+require 'mdextab'
+
+require 'simpleoptparse'
+require 'byebug'
+
+class Makemdtab
+  def initialize(opts, erubyfnames)
+    @dataop=opts["dataop"]
+    @datayamlfname=opts["data"]
+    @yamlop=opts["yamlop"]
+    @yamlfname=opts["setting"]
+    @auxyamlfname=opts["auxsetting"]
+    @erubyfnames=erubyfnames
+    @outputfname=opts["output"]
+
+    @exit_cannot_find_file = 1
+    @erubies = {}
+
+    @logger=Logger.new(STDOUT)
+    @logger.level = Logger::INFO
+    @logger.level = Logger::DEBUG if opts["debug"]
+    @logger.formatter = proc do |severity, datetime, progname, msg|
+      "#{msg}\n"
+    end
+
+    [@datayamlfname, @yamlfname, @auxyamlfname, @erubyfnames].flatten.each do |fname|
+      next if File.exist?(fname)
+
+      mes="Can't find #{fname}"
+      if @logger
+        @logger.error(mes)
+      else
+        STDERR.puts(mes)
+      end
+      exit(@exit_cannot_find_file)
+    end
+
+    begin
+      @output = File.open(@outputfname, 'w')
+    rescue RuntimeError => ex
+      mes2 = "Can't write #{@outputfname}"
+      if @logger
+        @logger.error(mes2)
+      else
+        STDERR.puts(mes2)
+      end
+      exit(@exit_cannot_write_file)
+    end
+
+
+  end
+
+  def makeMd()
+    load(@dataop, @datayamlfname, @yamlop, @auxyamlfname, @yamlfname, @erubyfnames[0]).map{|x| 
+#      @logger.debug(x) 
+      @output.puts(x)
+    }
+  end
+
+  def load(dataop, datayamlfname, yamlop, auxyamlfname, yamlfname, erubyfname)
+    eruby0 = nil
+    eruby1 = nil
+    obj = {}
+    obj0 = YAML.load_file(auxyamlfname) if auxyamlfname
+    obj = obj0 if obj0
+
+    case yamlop
+    when :MERGE
+      obj2 = YAML.load_file(yamlfname)
+      if obj2
+        if obj
+p obj
+          objx = obj.merge(obj2) 
+        else
+          objx = obj2
+        end
+      else
+        objx = obj
+      end
+    when :REPLACE
+      str = File.read(yamlfname)
+      str2 = Erubis::Eruby.new(str).result(obj)
+      objx0 = YAML.load(str2)
+      if objx0
+        objx = objx
+      else
+        objx = {}
+      end
+    else
+      # do nothing
+    end
+
+    if @dataop == :PATTERN_FOUR
+      mdfname=datayamlfname
+#      dir=File.dirname(mdfname)
+      objx["PARENT_DIR"] = ENV['MDEXTAB_MAKE']
+      
+      dx = [File.read(erubyfname), File.read(mdfname)].join("\n")
+      @erubies[mdfname] ||= Erubis::Eruby.new(dx)
+      array=[@erubies[mdfname].result(objx)]
+    else
+      strdata = File.read(datayamlfname)
+puts "strdata="
+p strdata
+      strdata2 = Erubis::Eruby.new(strdata).result(objx)
+      data = YAML.load(strdata2)
+
+      case dataop
+      when :PATTERN_ONE
+        array=loadWithPattern1(data, erubyfname)
+      when :PATTERN_TWO
+        array=loadWithPattern2(data, erubyfname)
+      when :PATTERN_THREE
+        dir=File.dirname(datayamlfname)
+        array=loadWithPattern3(data, erubyfname, dir)
+      else
+        array=[]
+        # do nothing
+      end
+    end
+    array
+  end
+
+  def loadWithPattern1(data, erubyfname)
+p "erubyfname="
+p erubyfname
+    @erubies[erubyfname] ||= Erubis::Eruby.new(File.read(erubyfname))
+    [@erubies[erubyfname].result(data)]
+  end
+
+  def loadWithPattern2(data, erubyfname)
+    data.map{ |x|
+      @erubies[erubyfname] ||= Erubis::Eruby.new(File.read(erubyfname))
+      @erubies[erubyfname].result(x)
+    }
+  end
+
+  def loadWithPattern3(data, erubyfname, dir)
+    hs={}
+    data.each do |k,v|
+      if /items/.match(k)
+        hs[k]=[]
+        v.each do |v2|
+          if /^path=(.*)/.match(v2)
+            hs[k] << File.join(dir, $1)
+          else
+            hs[k] << v2
+          end
+        end
+      else
+        hs[k]=v
+      end
+    end
+    @erubies[erubyfname] ||= Erubis::Eruby.new(File.read(erubyfname))
+    [@erubies[erubyfname].result(hs)]
+  end
+
+  def postProcess
+    @output.close if @output
+    @output = nil
+  end
+end
+
+opts = {}
+banner = "Usage: bundle exec ruby bin/makemdtab [--contest] [--debug] -o outfname -d datafname --y merge|replace -p pattern_one|pattern_two|pattern_three -s yamlfname [-a auxyamlfname] erubyfname [erubyfname2 *]"
+if ARGV.size == 0
+  puts(banner)
+  exit(100)
+end
+
+Simpleoptparse::Simpleoptparse.parse(ARGV , opts , banner , Mdextab::VERSION , nil){ |parser|
+  parser.on('--debug'  ) {|x| opts["debug"] = true}
+  parser.on('--contest'  ) {|x| opts["kind"] = :contest}
+  parser.on('-d value', '--data' ,'data file') {|x| opts["data"] = x}
+  parser.on('-s value', '--setting') {|x| opts["setting"] = x}
+  parser.on('-a [value]', '--auxsetting') {|x| opts["auxsetting"] = x}
+  parser.on('-o value', '--output') {|x| opts["output"] = x}
+  parser.on('-y value', '--yamlop') {|x| 
+                                         case x.upcase
+                                         when /^MERGE/
+                                         opts["yamlop"] = :MERGE
+                                         when /^REPLACE/
+                                         opts["yamlop"] = :REPLACE
+                                         else
+                                           # do nothing
+                                         end
+                                       }
+  parser.on('-p value', '--dataop') {|x| 
+                                         case x.upcase
+                                         when /^PATTERN_ONE/
+                                           opts["dataop"] = :PATTERN_ONE
+                                         when /^PATTERN_TWO/
+                                           opts["dataop"] = :PATTERN_TWO
+                                         when /^PATTERN_THREE/
+                                           opts["dataop"] = :PATTERN_THREE
+                                         when /^PATTERN_FOUR/
+                                           opts["dataop"] = :PATTERN_FOUR
+                                         else
+                                           # do nothing
+                                         end
+                                       }
+}
+
+unless opts["output"] and opts["yamlop"] and opts["dataop"]
+  puts(banner)
+  exit(101)
+end
+
+puts "|||||||||||| opts['output']=#{opts['output']}"
+puts "|||||||||||| ARGV=#{ARGV}"
+puts "|||||||||||| opts=#{opts}"
+x=Makemdtab.new(opts, ARGV)
+x.makeMd()
+x.postProcess
+
+
+
