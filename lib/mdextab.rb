@@ -33,7 +33,7 @@ module Mdextab
       @exit_cannot_find_file=6
       @exit_cannot_write_file=7
       @exit_else=8
-      @exit_illeagal_state=100
+      @exit_illeagal_state=90
 
       @logger = Loggerx.new("log.txt")
       #    @logger.level = Logger::WARN
