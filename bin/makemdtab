@@ -7,6 +7,12 @@ require 'mdextab'
 require 'simpleoptparse'
 require 'byebug'
 
+EXIT_CODE_NORMAL_EXIT=0
+EXIT_CODE_CANNOT_FILE_FILE=101
+EXIT_CODE_CANNOT_WRITE_FILE=102
+EXIT_CODE_ARGV_SIZE=103
+EXIT_CODE_MISSING_REQUIRED_ARGUMENT=104
+
 class Makemdtab
   def initialize(opts, erubyfnames)
     @dataop=opts["dataop"]
@@ -17,7 +23,9 @@ class Makemdtab
     @erubyfnames=erubyfnames
     @outputfname=opts["output"]
 
-    @exit_cannot_find_file = 1
+    @exit_cannot_find_file=1
+    @exit_cannot_write_file=2
+
     @erubies = {}
 
     @logger=Logger.new(STDOUT)
@@ -36,7 +44,7 @@ class Makemdtab
       else
         STDERR.puts(mes)
       end
-      exit(@exit_cannot_find_file)
+      exit(EXIT_CODE_CANNOT_FILE_FILE)
     end
 
     begin
@@ -48,7 +56,7 @@ class Makemdtab
       else
         STDERR.puts(mes2)
       end
-      exit(@exit_cannot_write_file)
+      exit(EXIT_CODE_CANNOT_WRITE_FILE)
     end
 
 
@@ -73,7 +81,6 @@ class Makemdtab
       obj2 = YAML.load_file(yamlfname)
       if obj2
         if obj
-p obj
           objx = obj.merge(obj2) 
         else
           objx = obj2
@@ -104,8 +111,6 @@ p obj
       array=[@erubies[mdfname].result(objx)]
     else
       strdata = File.read(datayamlfname)
-puts "strdata="
-p strdata
       strdata2 = Erubis::Eruby.new(strdata).result(objx)
       data = YAML.load(strdata2)
 
@@ -126,8 +131,6 @@ p strdata
   end
 
   def loadWithPattern1(data, erubyfname)
-p "erubyfname="
-p erubyfname
     @erubies[erubyfname] ||= Erubis::Eruby.new(File.read(erubyfname))
     [@erubies[erubyfname].result(data)]
   end
@@ -169,7 +172,7 @@ opts = {}
 banner = "Usage: bundle exec ruby bin/makemdtab [--contest] [--debug] -o outfname -d datafname --y merge|replace -p pattern_one|pattern_two|pattern_three -s yamlfname [-a auxyamlfname] erubyfname [erubyfname2 *]"
 if ARGV.size == 0
   puts(banner)
-  exit(100)
+  exit(EXIT_CODE_ARGV_SIZE)
 end
 
 Simpleoptparse::Simpleoptparse.parse(ARGV , opts , banner , Mdextab::VERSION , nil){ |parser|
@@ -207,15 +210,21 @@ Simpleoptparse::Simpleoptparse.parse(ARGV , opts , banner , Mdextab::VERSION , n
 
 unless opts["output"] and opts["yamlop"] and opts["dataop"]
   puts(banner)
-  exit(101)
+  exit(EXIT_CODE_MISSING_REQUIRED_ARGUMENT)
 end
 
+puts "# makemdtab Start #"
 puts "|||||||||||| opts['output']=#{opts['output']}"
 puts "|||||||||||| ARGV=#{ARGV}"
-puts "|||||||||||| opts=#{opts}"
+opts.each do |k,v|
+  puts "|||||||||||| opts[#{k}]=#{v}"
+end
+
 x=Makemdtab.new(opts, ARGV)
 x.makeMd()
 x.postProcess
+puts "# makemdtab End #"
+exit(EXIT_CODE_NORMAL_EXIT)
 
 
 
