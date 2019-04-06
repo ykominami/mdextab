@@ -73,7 +73,7 @@ module Mdextab
         START: {TABLE_START: :IN_TABLE , ELSE: :OUT_OF_TABLE, STAR_START: :START, STAR_END: :START},
         OUT_OF_TABLE: {TABLE_START: :IN_TABLE , ELSE: :OUT_OF_TABLE, STAR_START: :OUT_OF_TABLE, STAR_END: :OUT_OF_TABLE, TD: :OUT_OF_TABLE },
         IN_TABLE: {TBODY_START: :IN_TABLE_BODY, TABLE_END: :OUT_OF_TABLE, ELSE: :IN_TABLE, TD: :IN_TD_NO_TBODY, TH: :IN_TH_NO_TBODY, TABLE_START: :IN_TABLE, STAR_START: :IN_TABLE, STAR_END: :IN_TABLE},
-        IN_TABLE_BODY: { TH: :IN_TH , TD: :IN_TD , ELSE: :IN_TABLE_BODY, TABLE_START: :IN_TABLE, TBODY_END: :IN_TABLE, TABLE_END: :OUT_OF_TABLE, STAR_START: :IN_TABLE_BODY, STAR_END: :IN_TABLE_BODY},
+        IN_TABLE_BODY: { TH: :IN_TH , TD: :IN_TD , ELSE: :IN_TABLE_BODY, TABLE_START: :IN_TABLE_BODY, TBODY_END: :IN_TABLE, TABLE_END: :OUT_OF_TABLE, STAR_START: :IN_TABLE_BODY, STAR_END: :IN_TABLE_BODY},
         IN_TH: {ELSE: :IN_TH, TH: :IN_TH, TD: :IN_TD, TABLE_START: :IN_TH, STAR_START: :IN_TH, STAR_END: :IN_TH},
         IN_TH_NO_TBODY: {ELSE: :IN_TH_NO_TBODY, TH: :IN_TH_NO_TBODY, TD: :IN_TD_NO_TBODY, TABLE_START: :IN_TH_NO_TBODY, STAR_START: :IN_TH_NO_TBODY, STAR_END: :IN_TH_NO_TBODY},
         IN_TD: {ELSE: :IN_TD, TH: :IN_TH, TD: :IN_TD, TBODY_END: :IN_TABLE, TABLE_START: :IN_TD, STAR_START: :IN_TD, START_END: :IN_TD},
@@ -235,7 +235,10 @@ module Mdextab
       @logger.debug( "getNewEnv 1 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
     end
 
-    def processNestedTableStart(token)
+    def processNestedTableStart(token, lineno)
+      if @env.table.tbody == nil
+        @env.table.add_tbody(lineno)
+      end
       @logger.debug( "B getNewEnv 1 token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
       @env = getNewEnv(:OUT_OF_TABLE)
       @env.table = Table.new(token.opt[:lineno], @logger, token.opt[:attr])
@@ -266,6 +269,10 @@ module Mdextab
         when :IN_TH_NO_TBODY
           @env.table.thAppend(tmp_table,@env.star)
         when :IN_TABLE
+          if @env.table == nil
+            @logger.fatal( "In processNestedTableEnv: @env.table=nil token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
+            raise
+          end
           @env.table.add(tmp_table)
         when :IN_TABLE_BODY
           @env.table.add(tmp_table)
@@ -355,7 +362,8 @@ module Mdextab
           outputInElse('*'+token.opt[:content])
           outputInElse(token.opt[:content])
         when :TD
-          # ignore this case
+          # treat as :ELSE
+          outputInElse(":" + token.opt[:content])
         else
           @logger.error( ":OUT_OF_TABLE [unknown]")
           exit(@exit_unknown)
@@ -376,8 +384,7 @@ module Mdextab
           @env.table.add_tbody(lineno)
           @env.table.add_th(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr],@env.star)
         when :TABLE_START
-          @env.table = Table.new(lineno, @logger,token.opt[:attr])
-          outputInElse(token.opt[:content])
+          processNestedTableStart(token, lineno)
         when :STAR_START
           @env.star = true
           outputInElse('*'+token.opt[:content])
@@ -398,7 +405,7 @@ module Mdextab
         when :ELSE
           outputInElse(token.opt[:content])
         when :TABLE_START
-          processNestedTableStart(token)
+          processNestedTableStart(token, lineno)
         when :TBODY_END
           #  processTableEnd(token)
         when :TABLE_END
@@ -423,11 +430,14 @@ module Mdextab
         when :TD
           @env.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr],@env.star)
         when :TABLE_START
+          processNestedTableStart(token, lineno)
+=begin
           #        debug_envs(3, token)
           @env = getNewEnv(:OUT_OF_TABLE)
           @env.table = Table.new(lineno, @logger,token.opt[:attr])
           @logger.debug( "getNewEnv 2 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
           #        debug_envs(4, token)
+=end
         when :STAR_START
           @env.star = true
           tableThAppendInElse('*'+token.opt[:content])
@@ -448,11 +458,14 @@ module Mdextab
         when :TD
           @env.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr],@env.star)
         when :TABLE_START
+          processNestedTableStart(token, lineno)
+=begin
           #        debug_envs(3, token)
           @env = getNewEnv(:OUT_OF_TABLE)
           @env.table = Table.new(lineno, @logger,token.opt[:attr])
           @logger.debug( "getNewEnv 2 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
           #        debug_envs(4, token)
+=end
         when :STAR_START
           @env.star = true
           tableThAppendInElse('*'+token.opt[:content])
@@ -475,7 +488,7 @@ module Mdextab
         when :TBODY_END
           @env.table.tbody_end()
         when :TABLE_START
-          processNestedTableStart(token)
+          processNestedTableStart(token, lineno)
         when :STAR_START
           @env.star = true
           tableTdAppendInElse('*'+token.opt[:content])
@@ -496,7 +509,7 @@ module Mdextab
         when :TD
           @env.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr],@env.star)
         when :TABLE_START
-          processNestedTableStart(token)
+          processNestedTableStart(token, lineno)
         when :TABLE_END
           processTableEnd(token)
         when :TBODY_END

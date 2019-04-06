@@ -4,7 +4,7 @@ module Mdextab
   class Table
     extend Forwardable
     def_delegators :@tbody, :add_th, :add_td, :tdAppend, :thAppend, :add
-    attr_reader :lineno
+    attr_reader :lineno, :tbody
 
     def initialize(lineno, logger,attr=nil)
       @lineno = lineno
