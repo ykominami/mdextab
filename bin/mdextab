@@ -25,4 +25,4 @@ puts "##### Mdextab oFname=#{oFname}"
 puts "##### Mdextab yamlFname=#{yamlFname}"
 puts "##### Mdextab auxiliaryYamlFname=#{auxiliaryYamlFname}"
 
-exit 0
+exit(0)
