@@ -3,6 +3,7 @@
 
 require 'bundler/setup'
 require 'mdextab'
+require 'digest'
 
 require 'simpleoptparse'
 require 'byebug'
@@ -12,6 +13,12 @@ EXIT_CODE_CANNOT_FILE_FILE=101
 EXIT_CODE_CANNOT_WRITE_FILE=102
 EXIT_CODE_ARGV_SIZE=103
 EXIT_CODE_MISSING_REQUIRED_ARGUMENT=104
+EXIT_CODE_CANNOTFIND_YAMLFILE_OR_EMPTY=105
+EXIT_CODE_YAMLFILE_IS_EMPTY=106
+EXIT_CODE_CANNOTFIND_ERUBYFILE_OR_EMPTY=107
+EXIT_CODE_ERUBYFILE_IS_EMPTY=108
+EXIT_CODE_CANNOTFIND_MDFILE_OR_EMPTY=109
+EXIT_CODE_MDFILE_IS_EMPTY=110
 
 class Makemdtab
   def initialize(opts, erubyfnames)
@@ -39,11 +46,7 @@ class Makemdtab
       next if File.exist?(fname)
 
       mes="Can't find #{fname}"
-      if @logger
-        @logger.error(mes)
-      else
-        STDERR.puts(mes)
-      end
+      outputError(mes)
       exit(EXIT_CODE_CANNOT_FILE_FILE)
     end
 
@@ -51,25 +54,26 @@ class Makemdtab
       @output = File.open(@outputfname, 'w')
     rescue RuntimeError => ex
       mes2 = "Can't write #{@outputfname}"
-      if @logger
-        @logger.error(mes2)
-      else
-        STDERR.puts(mes2)
-      end
+      outputError(mes2)
       exit(EXIT_CODE_CANNOT_WRITE_FILE)
     end
+  end
 
-
+  def outputError(mes)
+    if @logger
+      @logger.error(mes)
+    else
+      STDERR.puts(mes)
+    end
   end
 
   def makeMd()
-    load(@dataop, @datayamlfname, @yamlop, @auxyamlfname, @yamlfname, @erubyfnames[0]).map{|x| 
-#      @logger.debug(x) 
+    load(@dataop, @datayamlfname, @yamlop, @auxyamlfname, @yamlfname, @erubyfnames).map{|x| 
       @output.puts(x)
     }
   end
 
-  def load(dataop, datayamlfname, yamlop, auxyamlfname, yamlfname, erubyfname)
+  def load(dataop, datayamlfname, yamlop, auxyamlfname, yamlfname, erubyfnames)
     eruby0 = nil
     eruby1 = nil
     obj = {}
@@ -101,27 +105,34 @@ class Makemdtab
       # do nothing
     end
 
+    erubystr=erubyfnames.map{|x| checkAndLoadErubyfile(x)}.join("\n")
     if @dataop == :PATTERN_FOUR
       mdfname=datayamlfname
-#      dir=File.dirname(mdfname)
       objx["PARENT_DIR"] = ENV['MDEXTAB_MAKE']
-      
-      dx = [File.read(erubyfname), File.read(mdfname)].join("\n")
+
+      mdstr=checkAndLoadMdfile(mdfname)
+
+      dx = [erubystr, mdstr].join("\n")
       @erubies[mdfname] ||= Erubis::Eruby.new(dx)
       array=[@erubies[mdfname].result(objx)]
     else
-      strdata = File.read(datayamlfname)
-      strdata2 = Erubis::Eruby.new(strdata).result(objx)
+      puts "datayamlfname=#{datayamlfname}"
+      strdata2=checkAndExpandYamlfile(datayamlfname, objx) 
       data = YAML.load(strdata2)
-
+if data.class != Hash
+  puts "strdata2=#{strdata2}"
+  p data
+  exit(300)
+end
+      erubyfname=erubyfnames.last
       case dataop
       when :PATTERN_ONE
-        array=loadWithPattern1(data, erubyfname)
+        array=loadWithPattern1(data, erubyfname, erubystr)
       when :PATTERN_TWO
-        array=loadWithPattern2(data, erubyfname)
+        array=loadWithPattern2(data, erubyfname, erubystr)
       when :PATTERN_THREE
         dir=File.dirname(datayamlfname)
-        array=loadWithPattern3(data, erubyfname, dir)
+        array=loadWithPattern3(data, erubyfname, erubystr, dir)
       else
         array=[]
         # do nothing
@@ -130,19 +141,77 @@ class Makemdtab
     array
   end
 
-  def loadWithPattern1(data, erubyfname)
-    @erubies[erubyfname] ||= Erubis::Eruby.new(File.read(erubyfname))
+  def checkAndLoadErubyfile(erubyfname)
+    size=File.size?(erubyfname)
+    if size and size > 0
+      erubystr=File.read(erubyfname)
+    else
+      mes=%Q!Can not find #{erubyfname} or is empty!
+      outputError(mes)
+      exit(EXIT_CODE_CANNOTFIND_ERUBYFILE_OR_EMPTY)
+    end
+    if erubystr.strip.empty?
+      mes=%Q!#{erubyfname} is empty!
+      outputError(mes)
+      exit(EXIT_CODE_ERUBYFILE_IS_EMPTY)
+    end
+    erubystr
+  end
+
+  def checkAndLoadMdfile(mdfname) 
+    size2=File.size?(mdfname)
+    if size2 and size2 > 0
+      mdstr=File.read(mdfname)
+    else
+      mes=%Q!Can not find #{mdfname} or is empty!
+      outputError(mes)
+      exit(EXIT_CODE_CANNOTFIND_MDFILE_OR_EMPTY)
+    end
+    if mdstr.strip.empty?
+      mes=%Q!#{mdfname} is empty!
+      outputError(mes)
+      exit(EXIT_CODE_MDFILE_IS_EMPTY)
+    end
+    mdstr
+  end
+
+  def checkAndExpandYamlfile(yamlfname, objx) 
+    size=File.size?(yamlfname)
+    if size and size > 0
+      puts File.mtime(yamlfname)
+      strdata = File.read(yamlfname)
+    else
+      mes=%Q!Can not find #{yamlfname} or is empty!
+      outputError(mes)
+      exit(EXIT_CODE_CANNOTFIND_YAMLFILE_OR_EMPTY)
+    end
+
+    if strdata.strip.empty?
+      mes=%Q!#{yamlfname} is empty!
+      outputError(mes)
+      exit(EXIT_CODE_YAMLFILE_IS_EMPTY)
+    else
+      puts Digest::MD5.hexdigest(strdata)
+      #
+      strdata2 = Erubis::Eruby.new(strdata).result(objx)
+    end
+
+    strdata2
+  end
+ 
+  def loadWithPattern1(data, erubyfname, erubystr)
+    @erubies[erubyfname] ||= Erubis::Eruby.new(erubystr)
     [@erubies[erubyfname].result(data)]
   end
 
-  def loadWithPattern2(data, erubyfname)
+  def loadWithPattern2(data, erubyfname, erubystr)
     data.map{ |x|
-      @erubies[erubyfname] ||= Erubis::Eruby.new(File.read(erubyfname))
+      @erubies[erubyfname] ||= Erubis::Eruby.new(erubystr)
       @erubies[erubyfname].result(x)
     }
   end
 
-  def loadWithPattern3(data, erubyfname, dir)
+  def loadWithPattern3(data, erubyfname, erubystr, dir)
     hs={}
     data.each do |k,v|
       if /items/.match(k)
@@ -158,7 +227,7 @@ class Makemdtab
         hs[k]=v
       end
     end
-    @erubies[erubyfname] ||= Erubis::Eruby.new(File.read(erubyfname))
+    @erubies[erubyfname] ||= Erubis::Eruby.new(erubystr)
     [@erubies[erubyfname].result(hs)]
   end
 
@@ -210,6 +279,11 @@ Simpleoptparse::Simpleoptparse.parse(ARGV , opts , banner , Mdextab::VERSION , n
 
 unless opts["output"] and opts["yamlop"] and opts["dataop"]
   puts(banner)
+  puts "don't be specified -d output" unless opts["output"]
+  puts "don't be specified -y value" unless opts["yamlop"]
+  puts "don't be specified -p value" unless opts["dataop"]
+  p ARGV
+  p opts
   exit(EXIT_CODE_MISSING_REQUIRED_ARGUMENT)
 end
 
