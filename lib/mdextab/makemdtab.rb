@@ -26,16 +26,11 @@ module Mdextab
       unless @mes
         if opts["debug"]
           @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
-puts "makemdtab 1"
         elsif opts["verbose"]
           @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :verbose)
-puts "makemdtab 2"
         else
           @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
-puts "makemdtab 3"
         end
-      else
-puts "makemdtab 4"
       end
       @mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE")
       @mes.addExitCode("EXIT_CODE_CANNOT_WRITE_FILE")
