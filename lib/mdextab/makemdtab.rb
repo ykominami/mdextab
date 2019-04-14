@@ -45,6 +45,8 @@ puts "makemdtab 4"
       @mes.addExitCode("EXIT_CODE_NAME_ERROR_EXCEPTION_IN_ERUBY")
       @mes.addExitCode("EXIT_CODE_ERROR_EXCEPTION_IN_ERUBY")
 
+      Filex.setup(@mes)
+
       begin
         @output = File.open(@outputfname, 'w')
       rescue RuntimeError => ex
@@ -55,13 +57,13 @@ puts "makemdtab 4"
     end
 
     def makeMd2(templatefile=nil, auxhs={})
-      load2(@dataop, @datayamlfname, templatefile, auxhs).map{|x| 
+      load2(@dataop, @datayamlfname, templatefile, auxhs).map{|x|
         @output.puts(x)
       }
     end
 
     def makeMd(auxhs={})
-      load(@dataop, @datayamlfname, @yamlop, @auxyamlfname, @yamlfname, @erubyfnames, auxhs).map{|x| 
+      load(@dataop, @datayamlfname, @yamlop, @auxyamlfname, @yamlfname, @erubyfnames, auxhs).map{|x|
         @output.puts(x)
       }
     end
@@ -111,7 +113,7 @@ puts "makemdtab 4"
         obj2 = @yamlfiles[yamlfname].dup
         if obj2
           if obj
-            objx = obj.merge(obj2) 
+            objx = obj.merge(obj2)
           else
             objx = obj2
           end
@@ -121,7 +123,7 @@ puts "makemdtab 4"
       when :REPLACE
         str=File.read(yamlfname)
         str2=Filex.expandStr(str, obj, @mes, {"mdfname"=>mdfname, "erubyfnames"=>erubyfnames})
-      
+
         unless @yamlfiles[yamlfname]
           @yamlfiles[yamlfname]=YAML.load(str2)
         end
@@ -134,14 +136,14 @@ puts "makemdtab 4"
       else
         # do nothing
       end
-      
+
       erubystr=erubyfnames.map{|x| checkAndLoadErubyfile(x)}.join("\n")
       if @dataop == :PATTERN_FOUR
         mdfname=datayamlfname
         objx["parentDir"] = ENV['MDEXTAB_MAKE']
-        
+
         mdstr=checkAndLoadMdfile(mdfname)
-        
+
         dx = [erubystr, mdstr].join("\n")
         unless @erubies[mdfname]
           @erubies[mdfname]=Erubis::Eruby.new(dx)
@@ -184,15 +186,15 @@ puts "makemdtab 4"
       @str_erubyfiles[erubyfname]
     end
 
-    def checkAndExpandYamlfile(yamlfname, objx) 
+    def checkAndExpandYamlfile(yamlfname, objx)
       unless @str_yamlfiles[yamlfname]
-        str=Filex.checkAndExpandFile(yamlfname, objx, @mes) 
+        str=Filex.checkAndExpandFile(yamlfname, objx, @mes)
         @str_yamlfiles[yamlfname]=YAML.load(str)
       end
       @str_yamlfiles[yamlfname]
     end
-    
-    def checkAndLoadMdfile(mdfname) 
+
+    def checkAndLoadMdfile(mdfname)
       unless @str_mdfiles[mdfname]
         @str_mdfiles[mdfname]=Filex.checkAndLoadFile(mdfname, @mes)
       end

@@ -8,7 +8,6 @@ require 'mdextab/td'
 require 'mdextab/th'
 require 'mdextab/token'
 require 'mdextab/tr'
-require 'mdextab/yamlx'
 require 'mdextab/makemdtab'
 require 'mdextab/filex'
 
@@ -40,6 +39,8 @@ module Mdextab
       @mes.addExitCode("EXIT_CODE_TABLE_END")
       @mes.addExitCode("EXIT_CODE_UNKNOWN")
       @mes.addExitCode("EXIT_CODE_ILLEAGAL_STATE")
+
+      Mdextab::Filex.setup(@mes)
 
       unless File.exist?(fname)
         mes="Can't find #{fname}"
