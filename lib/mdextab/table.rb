@@ -6,15 +6,15 @@ module Mdextab
     def_delegators :@tbody, :add_th, :add_td, :tdAppend, :thAppend, :add
     attr_reader :lineno, :tbody
 
-    def initialize(lineno, logger,attr=nil)
+    def initialize(lineno, mes, attr=nil)
       @lineno = lineno
       @attr = attr
       @tbody = nil
-      @logger = logger
+      @mes = mes
     end
 
     def add_tbody(lineno)
-      @tbody = Tbody.new(lineno, @logger)
+      @tbody = Tbody.new(lineno, @mes)
     end
 
     def tbody_end

@@ -2,13 +2,13 @@ module Mdextab
   class Tbody
     attr_reader :lineno
 
-    def initialize(lineno, logger)
+    def initialize(lineno, mes)
       @array = []
       @tr = nil
       @th = nil
       @td = nil
       @lineno = lineno
-      @logger = logger
+      @mes = mes
     end
 
     def add_th(lineno, content, nth, attr=nil, condense)
@@ -22,7 +22,7 @@ module Mdextab
     end
 
     def add_td(lineno, content, nth, attr=nil, condense)
-      @logger.debug( "content=#{content}|nth=#{nth}|attr=#{attr}" )
+      @mes.outputDebug( "content=#{content}|nth=#{nth}|attr=#{attr}" )
       if nth == 1
         @tr = Tr.new(lineno)
         @array << @tr

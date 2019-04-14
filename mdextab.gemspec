@@ -43,4 +43,5 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency "simpleoptparse"
   spec.add_runtime_dependency "erubis"
+  spec.add_runtime_dependency "messagex"
 end

@@ -1,6 +1,6 @@
 require "mdextab/version"
 
-require 'mdextab/loggerx'
+require 'messagex/loggerx'
 require 'mdextab/token'
 require 'mdextab/table'
 require 'mdextab/tbody'
@@ -9,6 +9,8 @@ require 'mdextab/th'
 require 'mdextab/token'
 require 'mdextab/tr'
 require 'mdextab/yamlx'
+require 'mdextab/makemdtab'
+require 'mdextab/filex'
 
 require 'byebug'
 
@@ -16,56 +18,41 @@ module Mdextab
   class Error < StandardError; end
 
   class Mdextab
-    def initialize(opt, fname, o_fname, yamlfname, auxiliaryYamlFname=nil)
+    def initialize(opt, fname, o_fname, mes=nil)
       @fname = fname
-      @yamlfname = yamlfname
-      @auxiliaryYamlFname = auxiliaryYamlFname
+      @yamlfname = opt["yamlfname"]
+      @auxiliaryYamlFname = opt["auxiliaryYamlFname"]
 
       @envStruct = Struct.new("Env" , :table, :star, :curState)
       @env = nil
       @envs = []
 
-      @exit_nil=1
-      @exit_exception=2
-      @exit_next_state=3
-      @exit_unknown=4
-      @exit_table_end=5
-      @exit_cannot_find_file=6
-      @exit_cannot_write_file=7
-      @exit_else=8
-      @exit_illeagal_state=90
+      @mes=mes
+      unless @mes
+          @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt["debug"])
+      end
+      @mes.addExitCode("EXIT_CODE_NORMAL_EXIT")
+      @mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE")
+      @mes.addExitCode("EXIT_CODE_CANNOT_WRITE_FILE")
+      @mes.addExitCode("EXIT_CODE_NEXT_STATE")
+      @mes.addExitCode("EXIT_CODE_NIL")
+      @mes.addExitCode("EXIT_CODE_EXCEPTION")
+      @mes.addExitCode("EXIT_CODE_TABLE_END")
+      @mes.addExitCode("EXIT_CODE_UNKNOWN")
+      @mes.addExitCode("EXIT_CODE_ILLEAGAL_STATE")
 
-      @logger = Loggerx.new("log.txt")
-      #    @logger.level = Logger::WARN
-      #    @logger.level = Logger::INFO
-      @logger.level = Logger::DEBUG if opt["debug"]
-
-      # UNKNOWN > FATAL > ERROR > WARN > INFO > DEBUG
-      #    @logger.datetime_format = '%Y-%m-%d %H:%M:%S'
-      @logger.datetime_format = ''
-      #logger.formatter = proc do |severity, datetime, progname, msg|
-      #   ">>>>>> #{msg}\n"
-      #end
       unless File.exist?(fname)
         mes="Can't find #{fname}"
-        if @logger
-          @logger.error(mes)
-        else
-          STDERR.puts(mes)
-        end
-        exit(@exit_cannot_find_file)
+        @mes.outputError(mes)
+        exit(@mes.exitcode["EXIT_CODE_CANNOT_FIND_FILE"])
       end
 
       begin
         @output = File.open(o_fname, 'w')
       rescue => ex
-        mes2="Can't write #{o_fname}"
-        if @logger
-          @logger.error(mes2)
-        else
-          STDERR.puts(mes2)
-        end
-        exit(@exit_cannot_write_file)
+        mesg2="Can't write #{o_fname}"
+        @mes.outputFatal(mesg2)
+        exit(@mes.exitcode["EXIT_CODE_CANNOT_WRITE_FILE"])
       end
 
       @fname = fname
@@ -92,20 +79,20 @@ module Mdextab
         ret = Token.new(:STAR_END, {content: content, lineno: lineno})
       when /^\s*<table/
         if /^\s*<table>\s*$/.match?(l)
-          @logger.debug(%Q!T1 :TABLE_START attr: nil!)
+          @mes.outputDebug(%Q!T1 :TABLE_START attr: nil!)
           ret = Token.new(:TABLE_START, {lineno: lineno})
         elsif (m=/^\s*<table\s+(.+)>\s*$/.match(l))
-          @logger.debug(%Q!T2 :TABLE_START attr: #{m[1]}!)
+          @mes.outputDebug(%Q!T2 :TABLE_START attr: #{m[1]}!)
           ret = Token.new(:TABLE_START, {attr: m[1], lineno: lineno})
         else
-          @logger.debug("E002 l=#{l}")
+          @mes.outputDebug("E002 l=#{l}")
           ret = nil
         end
       when /^\s*<tbody/
         if /^\s*<tbody>\s*$/.match?(l)
           ret = Token.new(:TBODY_START, {lineno: lineno})
         else
-          @logger.debug("E003 l=#{l}")
+          @mes.outputDebug("E003 l=#{l}")
           ret = nil
         end        
 
@@ -114,49 +101,49 @@ module Mdextab
         cont = $2
         if (m=/^th(.*)/.match(cont))
           cont2 = m[1]
-          @logger.debug( %Q!cont2=#{cont2}! )
+          @mes.outputDebug( %Q!cont2=#{cont2}! )
           if (m2=/^\s(.*)/.match(cont2))
             cont3 = m2[1]
             if (m3=/^([^<]*)>(.*)$/.match(cont3))
               attr = m3[1]
               cont4 = m3[2]
-              @logger.debug( %Q!1 :TH , { nth: #{nth} , attr: #{attr} , content: #{cont4}}! )
+              @mes.outputDebug( %Q!1 :TH , { nth: #{nth} , attr: #{attr} , content: #{cont4}}! )
               ret = Token.new(:TH , { nth: nth , attr: attr , content: cont4, lineno: lineno})
             else
               # error
               #ret = nil
-              @logger.debug( %Q!2 :ELSE , { nth: #{nth} , attr: nil , content: #{cont}}! )
+              @mes.outputDebug( %Q!2 :ELSE , { nth: #{nth} , attr: nil , content: #{cont}}! )
               ret = Token.new(:ELSE , { nth: nth , attr: nil , content: cont, lineno: lineno})
             end
           elsif (m=/^>(.*)$/.match(cont2))
             cont3 = m[1]
-            @logger.debug( %Q!3 :TH , { nth: #{nth} , attr: nil , content: #{cont3}}! )
+            @mes.outputDebug( %Q!3 :TH , { nth: #{nth} , attr: nil , content: #{cont3}}! )
             ret = Token.new(:TH , { nth: nth , attr: nil , content: cont3, lineno: lineno})
           else
-            @logger.debug( %Q!4 :ELSE , { nth: #{nth} , attr: nil , content: #{cont}}! )
+            @mes.outputDebug( %Q!4 :ELSE , { nth: #{nth} , attr: nil , content: #{cont}}! )
             ret = Token.new(:ELSE , { nth: nth , attr: nil , content: cont, lineno: lineno})
           end
         elsif (m=/^([^<]*)>(.*)$/.match(cont))
           attr = m[1]
           cont2 = m[2]
-          @logger.debug( %Q!5 :TD , { nth: #{nth} , attr: #{attr} , content: #{cont2}}! )
+          @mes.outputDebug( %Q!5 :TD , { nth: #{nth} , attr: #{attr} , content: #{cont2}}! )
           ret = Token.new(:TD , {nth: nth , attr: attr , content: cont2, lineno: lineno})
         else
-          @logger.debug( %Q!6 :TD , { nth: #{nth} , attr: #{attr} , content: #{cont}}! )
+          @mes.outputDebug( %Q!6 :TD , { nth: #{nth} , attr: #{attr} , content: #{cont}}! )
           ret = Token.new(:TD , { nth: nth , attr: attr , content: cont , lineno: lineno})
         end
       when /^\s*<\/table/
         if /^\s*<\/table>\s*$/.match?(l)
           ret = Token.new(:TABLE_END, {lineno: lineno})
         else
-          @logger.debug("E000 l=#{l}")
+          @mes.outputDebug("E000 l=#{l}")
           ret = nil
         end
       when /^\s*<\/tbody/
         if /^\s*<\/tbody>\s*$/.match?(l)
           ret = Token.new(:TBODY_END, {lineno: lineno})
         else
-          @logger.debug("E001 l=#{l}")
+          @mes.outputDebug("E001 l=#{l}")
           ret = nil
         end
       else
@@ -164,6 +151,39 @@ module Mdextab
       end
 
       ret
+    end
+
+    def parse2(hs)
+      @env = getNewEnv()
+      lineno=0
+#      Yamlx.loadSetting2(@fname, hs).each{ |l|
+      Filex::checkAndExpandFileLines(@fname, hs, @mes).each{ |l|
+        lineno += 1
+        token = getToken(l, lineno)
+        kind = token.kind
+
+        @mes.outputDebug("kind=#{kind}")
+        @mes.outputDebug(%Q!(source)#{lineno}:#{l}!)
+        if @env.curState == nil
+          @mes.outputError("(script)#{__LINE__}| @env.curState=nil")
+        else
+          @mes.outputDebug("(script)#{__LINE__}| @env.curState=#{@env.curState}")
+        end
+        #        debug_envs(5, token)
+
+        ret = processOneLine(@env.curState, token, l, lineno)
+        unless ret
+          @mes.outputError("processOneLine returns nil")
+          exit(@mes.exitcode["EXIT_CODE_NEXT_STATE"])
+        end
+        @env.curState = ret
+
+        v=@env.curState
+        v="nil" unless v
+        @mes.outputDebug("NEXT kind=#{kind} @env.curState=#{v}")
+        @mes.outputDebug("-----")
+      }
+      checkEnvs
     end
 
     def parse
@@ -174,26 +194,26 @@ module Mdextab
         token = getToken(l, lineno)
         kind = token.kind
 
-        @logger.debug("kind=#{kind}")
-        @logger.debug(%Q!(source)#{lineno}:#{l}!)
+        @mes.outputDebug("kind=#{kind}")
+        @mes.outputDebug(%Q!(source)#{lineno}:#{l}!)
         if @env.curState == nil
-          @logger.error("(script)#{__LINE__}| @env.curState=nil")
+          @mes.outputError("(script)#{__LINE__}| @env.curState=nil")
         else
-          @logger.debug("(script)#{__LINE__}| @env.curState=#{@env.curState}")
+          @mes.outputDebug("(script)#{__LINE__}| @env.curState=#{@env.curState}")
         end
         #        debug_envs(5, token)
 
         ret = processOneLine(@env.curState, token, l, lineno)
         unless ret
-          @logger.error("processOneLine returns nil")
-          exit(@exit_next_state)
+          @mes.outputError("processOneLine returns nil")
+          exit(@mes.exitcode["EXIT_CODE_NEXT_STATE"])
         end
         @env.curState = ret
 
         v=@env.curState
         v="nil" unless v
-        @logger.debug("NEXT kind=#{kind} @env.curState=#{v}")
-        @logger.debug("-----")
+        @mes.outputDebug("NEXT kind=#{kind} @env.curState=#{v}")
+        @mes.outputDebug("-----")
       }
       checkEnvs
     end
@@ -201,48 +221,48 @@ module Mdextab
 
     def getNextState(token, line)
       kind = token.kind
-      @logger.debug("#{__LINE__}|@env.curState=#{@env.curState} #{@env.curState.class}")
+      @mes.outputDebug("#{__LINE__}|@env.curState=#{@env.curState} #{@env.curState.class}")
       tmp = @state[@env.curState]
       if tmp == nil
-        @logger.error(%Q!kind=#{kind}!)
-        @logger.error("=== tmp == nil")
-        exit(@exit_nil)
+        @mes.outputError(%Q!kind=#{kind}!)
+        @mes.outputError("=== tmp == nil")
+        exit(@mes.exitcode["EXIT_CODE_NIL"])
       else
-        @logger.debug("tmp=#{tmp}")
+        @mes.outputDebug("tmp=#{tmp}")
       end
-      @logger.debug("#{__LINE__}|kind=#{kind}")
+      @mes.outputDebug("#{__LINE__}|kind=#{kind}")
       
       begin
         nextState = tmp[kind]
-        @logger.debug("#{__LINE__}|nextState=#{nextState}")
+        @mes.outputDebug("#{__LINE__}|nextState=#{nextState}")
       rescue
-        @logger.fatal(@env.curState)
-        @logger.fatal(kind)
-        @logger.fatal(nextState)
-        @logger.fatal("+++")
-        exit(@exit_exception)
+        @mes.outputFatal(@env.curState)
+        @mes.outputFatal(kind)
+        @mes.outputFatal(nextState)
+        @mes.outputFatal("+++")
+        exit(@mes.exitcode["EXIT_CODE_EXCEPTION"])
       end
-      @logger.debug("#{__LINE__}|nextState=#{nextState}")
+      @mes.outputDebug("#{__LINE__}|nextState=#{nextState}")
       nextState
     end
 
     def debug_envs(n, token)
-      @logger.debug( "***#{n}")
+      @mes.outputDebug( "***#{n}")
       @envs.each_with_index{|x,ind|
-        @logger.debug( "@envs[#{ind}]=#{@envs[ind]}")
+        @mes.outputDebug( "@envs[#{ind}]=#{@envs[ind]}")
       }
-      @logger.debug( "******#{n}")
-      @logger.debug( "getNewEnv 1 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
+      @mes.outputDebug( "******#{n}")
+      @mes.outputDebug( "getNewEnv 1 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
     end
 
     def processNestedTableStart(token, lineno)
       if @env.table.tbody == nil
         @env.table.add_tbody(lineno)
       end
-      @logger.debug( "B getNewEnv 1 token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
+      @mes.outputDebug( "B getNewEnv 1 token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
       @env = getNewEnv(:OUT_OF_TABLE)
-      @env.table = Table.new(token.opt[:lineno], @logger, token.opt[:attr])
-      @logger.debug( "getNewEnv 3 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
+      @env.table = Table.new(token.opt[:lineno], @mes, token.opt[:attr])
+      @mes.outputDebug( "getNewEnv 3 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
     end
 
     def processTableEnd(token)
@@ -251,14 +271,14 @@ module Mdextab
       if prevEnv
         tmp_table = @env.table
 
-        @logger.debug( "B getPrevEnv 1 token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
-        @logger.debug( "@envs.size=#{@envs.size}")
+        @mes.outputDebug( "B getPrevEnv 1 token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
+        @mes.outputDebug( "@envs.size=#{@envs.size}")
         @env = getPrevEnv()
         @return_from_nested_env = true
-        @logger.debug( "getPrevEnv 1 token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
+        @mes.outputDebug( "getPrevEnv 1 token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
 
-        @logger.debug( "0 - processTableEnd @env.curState=#{@env.curState} @return_from_nested_env=#{@return_from_nested_env}")
-        @logger.debug( tmp_table )
+        @mes.outputDebug( "0 - processTableEnd @env.curState=#{@env.curState} @return_from_nested_env=#{@return_from_nested_env}")
+        @mes.outputDebug( tmp_table )
         case @env.curState
         when :IN_TD
           @env.table.tdAppend(tmp_table, @env.star)
@@ -270,7 +290,7 @@ module Mdextab
           @env.table.thAppend(tmp_table,@env.star)
         when :IN_TABLE
           if @env.table == nil
-            @logger.fatal( "In processNestedTableEnv: @env.table=nil token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
+            @mes.outputDebug( "In processNestedTableEnv: @env.table=nil token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} @env.curState=#{@env.curState}" )
             raise
           end
           @env.table.add(tmp_table)
@@ -281,12 +301,12 @@ module Mdextab
         else
           v = @env.curState
           v = "nil" unless v
-          @logger.error("E100 @env.curState=#{v}")
-          @logger.error("@env.table=#{@env.table}")
-          exit(@exit_table_end)
+          @mes.outputError("E100 @env.curState=#{v}")
+          @mes.outputError("@env.table=#{@env.table}")
+          exit(@mes.exitcode["EXIT_CODE_TABLE_END"])
         end
       else
-        @logger.debug( "1 - processTableEnd @env.curState=#{@env.curState} @return_from_nested_env~#{@return_from_nested_env}")
+        @mes.outputDebug( "1 - processTableEnd @env.curState=#{@env.curState} @return_from_nested_env~#{@return_from_nested_env}")
         @output.puts(@env.table.end)
       end
     end
@@ -294,7 +314,7 @@ module Mdextab
     def outputInElse(str)
       if @env.star
         if str.match?(/^\s*$/)
-          @logger.debug("InElse do nothing")
+          @mes.outputDebug("InElse do nothing")
         else
           @output.puts(str)
         end
@@ -306,7 +326,7 @@ module Mdextab
     def tableThAppendInElse(str)
       if @env.star
         if str.match?(/^\s*$/)
-          @logger.debug("ThAppend InElse")
+          @mes.outputDebug("ThAppend InElse")
         else
           @env.table.thAppend(str,@env.star)
         end
@@ -318,7 +338,7 @@ module Mdextab
     def tableTdAppendInElse(str)
       if @env.star
         if str.match?(/^\s*$/)
-          @logger.debug("TdAppend InElse")
+          @mes.outputDebug("TdAppend InElse")
         else
           @env.table.tdAppend(str,@env.star)
         end
@@ -333,7 +353,7 @@ module Mdextab
       when :START
         case token.kind
         when :TABLE_START
-          @env.table = Table.new(lineno, @logger,token.opt[:attr])
+          @env.table = Table.new(lineno, @mes, token.opt[:attr])
         when :ELSE
           # threw
           outputInElse(token.opt[:content])
@@ -345,13 +365,13 @@ module Mdextab
           outputInElse('*'+token.opt[:content])
           outputInElse(token.opt[:content])
         else
-          @logger.error( ":START [unknown]")
-          exit(@exit_unknown)
+          @mes.outputError( ":START [unknown]")
+          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
         end
       when :OUT_OF_TABLE
         case token.kind
         when :TABLE_START
-          @env.table = Table.new(lineno, @logger,token.opt[:attr])
+          @env.table = Table.new(lineno, @mes,token.opt[:attr])
         when :ELSE
           outputInElse(token.opt[:content])
         when :STAR_START
@@ -365,8 +385,8 @@ module Mdextab
           # treat as :ELSE
           outputInElse(":" + token.opt[:content])
         else
-          @logger.error( ":OUT_OF_TABLE [unknown]")
-          exit(@exit_unknown)
+          @mes.outputError( ":OUT_OF_TABLE [unknown]")
+          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
         end
       when :IN_TABLE
         case token.kind
@@ -377,7 +397,7 @@ module Mdextab
         when :ELSE
           outputInElse(token.opt[:content])
         when :TD
-          @logger.debug(token)
+          @mes.outputDebug(token)
           @env.table.add_tbody(lineno)
           @env.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr],@env.star)
         when :TH
@@ -392,15 +412,15 @@ module Mdextab
           @env.star = false
           outputInElse('*'+token.opt[:content])
         else
-          @logger.error( ":IN_TABLE [unknown]")
-          exit(@exit_unknown)
+          @mes.outputError( ":IN_TABLE [unknown]")
+          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
         end
       when :IN_TABLE_BODY
         case token.kind
         when :TH
           @env.table.add_th(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr],@env.star)
         when :TD
-          @logger.debug(token)
+          @mes.outputDebug(token)
           @env.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr],@env.star)
         when :ELSE
           outputInElse(token.opt[:content])
@@ -417,8 +437,8 @@ module Mdextab
           @env.star = false       
           outputInElse('*'+token.opt[:content])
         else
-          @logger.error( ":IN_TABLE_BODY [unknown]")
-          exit(@exit_unknown)
+          @mes.outputError( ":IN_TABLE_BODY [unknown]")
+          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
           #
         end
       when :IN_TH
@@ -431,13 +451,6 @@ module Mdextab
           @env.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr],@env.star)
         when :TABLE_START
           processNestedTableStart(token, lineno)
-=begin
-          #        debug_envs(3, token)
-          @env = getNewEnv(:OUT_OF_TABLE)
-          @env.table = Table.new(lineno, @logger,token.opt[:attr])
-          @logger.debug( "getNewEnv 2 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
-          #        debug_envs(4, token)
-=end
         when :STAR_START
           @env.star = true
           tableThAppendInElse('*'+token.opt[:content])
@@ -445,8 +458,8 @@ module Mdextab
           @env.star = false       
           tableThAppendInElse('*'+token.opt[:content])
         else
-          @logger.error( ":IN_TH [unknown]")
-          exit(@exit_unknown)
+          @mes.outputError( ":IN_TH [unknown]")
+          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
           #
         end
       when :IN_TH_NO_TBODY
@@ -459,13 +472,6 @@ module Mdextab
           @env.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr],@env.star)
         when :TABLE_START
           processNestedTableStart(token, lineno)
-=begin
-          #        debug_envs(3, token)
-          @env = getNewEnv(:OUT_OF_TABLE)
-          @env.table = Table.new(lineno, @logger,token.opt[:attr])
-          @logger.debug( "getNewEnv 2 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
-          #        debug_envs(4, token)
-=end
         when :STAR_START
           @env.star = true
           tableThAppendInElse('*'+token.opt[:content])
@@ -473,8 +479,8 @@ module Mdextab
           @env.star = false       
           tableThAppendInElse('*'+token.opt[:content])
         else
-          @logger.error( ":IN_TH_NO_TBODY [unknown]")
-          exit(@exit_unknown)
+          @mes.outputError( ":IN_TH_NO_TBODY [unknown]")
+          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
           #
         end
       when :IN_TD
@@ -496,8 +502,8 @@ module Mdextab
           @env.star = false       
           tableTdAppendInElse('*'+token.opt[:content])
         else
-          @logger.error( ":IN_TD [unknown]")
-          exit(@exit_unknown)
+          @mes.outputError( ":IN_TD [unknown]")
+          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
           #
         end
       when :IN_TD_NO_TBODY
@@ -521,19 +527,19 @@ module Mdextab
           @env.star = false       
           tableTdAppendInElse('*'+token.opt[:content])
         else
-          @logger.error( ":IN_TD_NO_TBODY [unknown]")
-          exit(@exit_unknown)
+          @mes.outputError( ":IN_TD_NO_TBODY [unknown]")
+          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
           #
         end
       else
-        @logger.error( "unknown state")
-        exit(@exit_unknown)
+        @mes.outputError( "unknown state")
+        exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
         #
       end
 
       unless @return_from_nested_env
         nextState = getNextState(token, line)
-        @logger.debug("#{__LINE__}|nextState=#{nextState}")
+        @mes.outputDebug("#{__LINE__}|nextState=#{nextState}")
       else
         nextState = @env.curState
       end
@@ -578,37 +584,34 @@ module Mdextab
       when :OUT_OF_TABLE
         if @envs.size > 1
           @logger.info("illeagal nested env after parsing|:OUT_OF_TABLE")
-          @logger.fatal("@envs.size=#{@envs.size} :TABLE_START #{@env.table.lineno}" )
+          @mes.outputDebug("@envs.size=#{@envs.size} :TABLE_START #{@env.table.lineno}" )
           @envs.map{ |x| 
-            @logger.fatal("== @envs.curState=#{x.curState} :TABLE_START #{x.table.lineno}") 
+            @mes.outputDebug("== @envs.curState=#{x.curState} :TABLE_START #{x.table.lineno}") 
           }
-          @logger.fatal("== @env.table")
+          @mes.outputDebug("== @env.table")
           @logger.info(@env.table)
           raise
         end
       when :START
         if @envs.size > 1
-          @logger.fatal("illeagal nested env after parsing|:START")
-          @logger.fatal("@envs.size=#{@envs.size}")
+          @mes.outputError("illeagal nested env after parsing|:START")
+          @mes.outputError("@envs.size=#{@envs.size}")
           @envs.map{ |x| 
-            @logger.fatal("== @envs.curState=#{x.curState} :TABLE_START #{x.table.lineno}") 
+            @mes.outputError("== @envs.curState=#{x.curState} :TABLE_START #{x.table.lineno}") 
           }
-          @logger.fatal("== @env.table")
-          @logger.fatal(@env.table)
+          @mes.outputError("== @env.table")
+          @mes.outputError(@env.table)
           raise
         end
       else
-        @logger.fatal("illeagal state after parsing(#{@env.curState}|#{@env.curState.class})")
-        @logger.fatal("@envs.size=#{@envs.size}")
-        @logger.fatal("== @env.curState=#{@env.curState}")
+        @mes.outputError("illeagal state after parsing(#{@env.curState}|#{@env.curState.class})")
+        @mes.outputError("@envs.size=#{@envs.size}")
+        @mes.outputError("== @env.curState=#{@env.curState}")
         @envs.map{ |x| 
-          @logger.fatal("== @envs.curState=#{x.curState} #{@fname}:#{x.table.lineno}") 
+          @mes.outputError("== @envs.curState=#{x.curState} #{@fname}:#{x.table.lineno}") 
         }
-#        @logger.fatal("== @env.table")
-#        @logger.fatal(@env.table)
-#        raise
-        @logger.fatal("")
-        exit(@exit_illeagal_state)
+        @mes.outputError("")
+        exit(@mes.exitcode["EXIT_CODE_ILLEAGAL_STATE"])
       end
     end
   end
