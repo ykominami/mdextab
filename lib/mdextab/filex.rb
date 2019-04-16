@@ -63,5 +63,80 @@ module Mdextab
       strdata2=expandStr(strdata, objx, mes, {fname: fname})
       strdata2
     end
+
+    def self.escapeBySingleQuoteInYamlFileToStr(fname)
+      self.escapeBySingleQuoteInYamlFileToLines(fname).join("\n")  
+    end
+
+    def self.escapeBySingleQuoteInYamlFileToLines(fname)
+      File.readlines.map{|x|
+        x.chomp!
+        self.escapeBySingleQuoteInYamlFormatOneLine(x)
+      }
+    end
+
+    def self.escapeBySingleQuoteInYamlFormat(str)
+      str.split("\n").map{|x|
+        self.escapeBySingleQuoteInYamlFormatOneLine(x)
+      }.join("\n")
+    end
+
+    def self.escapeBySingleQuoteInYamlFormatOneLine(x, prevQuotoFlag=false)
+      if (m=/(^[\s\-]+)([^\-\s].*)/.match(x))
+        l=m[1]
+        r=m[2]
+        if prevQuotoFlag
+#            puts "===A-1"
+          l+" '"+r+"'"
+        else
+          index=r.index('-')
+          index=r.index('*') unless index
+          index=r.index(':') unless index
+          if index
+#            puts "===A0"
+            l+" '"+r+"'"
+          else
+#            puts "===A1"
+            l+r
+          end
+        end
+      elsif (index=x.index(':'))
+        if index
+          l=x.slice(0,(index+1))
+          r=x.slice((index+1),x.size)
+        else
+          l=x
+          r=nil
+        end
+        #      l,r=x.split(':')
+        if r and !(r.strip.empty?)
+#          puts "===2"
+          l+" '"+r+"'"
+        else
+#          puts "===3"
+          l
+        end
+      else
+#       puts "===4"
+        x
+      end
+    end
+
+    def self.escapeBySingleQuoteInYamlFormatOneLine_0(x)
+      index=x.index(':')
+      if index
+        l=x.slice(0,(index+1))
+        r=x.slice((index+1),x.size)
+      else
+        l=x
+        r=nil
+      end
+#      l,r=x.split(':')
+      if r and !(r.strip.empty?)
+        l+"'"+r+"'"
+      else
+        l
+      end
+    end
   end
 end
