@@ -20,15 +20,14 @@ module Mdextab
     def initialize(opt, fname, o_fname, mes=nil)
       @fname = fname
       @yamlfname = opt["yamlfname"]
-      @auxiliaryYamlFname = opt["auxiliaryYamlFname"]
 
-      @envStruct = Struct.new("Env" , :table, :star, :curState)
+      @envStruct = Struct.new(:table, :star, :curState)
       @env = nil
       @envs = []
 
       @mes=mes
       unless @mes
-          @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt["debug"])
+        @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt["debug"])
       end
       @mes.addExitCode("EXIT_CODE_NORMAL_EXIT")
       @mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE")
@@ -157,7 +156,6 @@ module Mdextab
     def parse2(hs)
       @env = getNewEnv()
       lineno=0
-#      Yamlx.loadSetting2(@fname, hs).each{ |l|
       Filex::checkAndExpandFileLines(@fname, hs, @mes).each{ |l|
         lineno += 1
         token = getToken(l, lineno)
@@ -186,39 +184,6 @@ module Mdextab
       }
       checkEnvs
     end
-
-    def parse
-      @env = getNewEnv()
-      lineno=0
-      Yamlx.loadSetting(@yamlfname , @auxiliaryYamlFname, @fname).each{ |l|
-        lineno += 1
-        token = getToken(l, lineno)
-        kind = token.kind
-
-        @mes.outputDebug("kind=#{kind}")
-        @mes.outputDebug(%Q!(source)#{lineno}:#{l}!)
-        if @env.curState == nil
-          @mes.outputError("(script)#{__LINE__}| @env.curState=nil")
-        else
-          @mes.outputDebug("(script)#{__LINE__}| @env.curState=#{@env.curState}")
-        end
-        #        debug_envs(5, token)
-
-        ret = processOneLine(@env.curState, token, l, lineno)
-        unless ret
-          @mes.outputError("processOneLine returns nil")
-          exit(@mes.exitcode["EXIT_CODE_NEXT_STATE"])
-        end
-        @env.curState = ret
-
-        v=@env.curState
-        v="nil" unless v
-        @mes.outputDebug("NEXT kind=#{kind} @env.curState=#{v}")
-        @mes.outputDebug("-----")
-      }
-      checkEnvs
-    end
-
 
     def getNextState(token, line)
       kind = token.kind
@@ -266,8 +231,7 @@ module Mdextab
       @mes.outputDebug( "getNewEnv 3 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
     end
 
-    def processTableEnd(token)
-#byebug
+    def processTableEnd(token)p
       prevEnv = peekPrevEnv()
       if prevEnv
         tmp_table = @env.table
@@ -612,7 +576,7 @@ module Mdextab
           @mes.outputError("== @envs.curState=#{x.curState} #{@fname}:#{x.table.lineno}") 
         }
         @mes.outputError("")
-        exit(@mes.exitcode["EXIT_CODE_ILLEAGAL_STATE"])
+        exit(@mes.exitCode["EXIT_CODE_ILLEAGAL_STATE"])
       end
     end
   end

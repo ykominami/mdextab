@@ -39,7 +39,7 @@ module Mdextab
       @mes.addExitCode("EXIT_CODE_FILE_IS_EMPTY")
       @mes.addExitCode("EXIT_CODE_NAME_ERROR_EXCEPTION_IN_ERUBY")
       @mes.addExitCode("EXIT_CODE_ERROR_EXCEPTION_IN_ERUBY")
-
+      @mes.addExitCode("EXIT_CODE_ILLEGAL_DATAOP")
       Filex.setup(@mes)
 
       begin
@@ -57,112 +57,34 @@ module Mdextab
       }
     end
 
-    def makeMd(auxhs={})
-      load(@dataop, @datayamlfname, @yamlop, @auxyamlfname, @yamlfname, @erubyfnames, auxhs).map{|x|
-        @output.puts(x)
-      }
-    end
-
     def load2(dataop, datayamlfname, templatefile, auxhs)
       objx=@objByYaml.merge(auxhs)
-      case @dataop
+      case dataop
       when :FILE_INCLUDE
         mdfname=datayamlfname
         objy={"parentDir" => '%q!' + ENV['MDEXTAB_MAKE'] + '!' }
-        erubyExanpdedStr=["<%= ", Filex.expandStr(@erubyVariableStr, objy, @mes), " %>"].join("\n")
+        erubyExanpdedStr=["<% ", Filex.expandStr(@erubyVariableStr, objy, @mes), " %>"].join("\n")
 
         mdstr=checkAndLoadMdfile(mdfname)
         dx = [erubyExanpdedStr, @erubyStaticStr, mdstr].join("\n")
-        array=[Filex.expandStr(dx, auxhs, @mes, {"mdfname" => mdfname})]
+        objz=auxhs.merge(objx)
+        array=[Filex.expandStr(dx, objz, @mes, {"mdfname" => mdfname})]
       when :YAML_TO_MD
-        objy=checkAndExpandYamlfile(datayamlfname, objx)
-        erubystr=checkAndLoadErubyfile(templatefile)
-        dx = [@erubyStaticStr, erubystr].join("\n")
+        @mes.outputDebug(":YAML_TO_MD")
+        @mes.outputDebug("datayamlfname=#{datayamlfname}")
+        @mes.outputDebug("objx=#{objx}")
 
+        objy=checkAndExpandYamlfile(datayamlfname, objx)
+        @mes.outputDebug("objy=#{objy}")
+        @mes.outputDebug("templatefile=#{templatefile}")
+        erubystr=checkAndLoadErubyfile(templatefile)
+        @mes.outputDebug("erubystr=#{erubystr}")
+        dx = [@erubyStaticStr, erubystr].join("\n")
+        @mes.outputDebug("dx=#{dx}")
         array=[Filex.expandStr(dx, objy, @mes, {"datayamlfname" => datayamlfname , "templatefile" => templatefile})]
       else
-        raise
-#        array=[]
-      end
-      array
-    end
-
-    def load(dataop, datayamlfname, yamlop, auxyamlfname, yamlfname, erubyfnames, auxhs)
-      eruby0 = nil
-      eruby1 = nil
-      obj = {}
-      if auxyamlfname
-        unless @yamlfiles[auxyamlfname]
-          @yamlfiles[auxyamlfname]=YAML.load_file(auxyamlfname)
-        end
-        obj0=@yamlfiles[auxyamlfname].dup
-      end
-
-      obj = obj0 if obj0
-
-      case yamlop
-      when :MERGE
-        unless @yamlfiles[yamlfname]
-          @yamlfiles[yamlfname]=YAML.load_file(yamlfname)
-        end
-        obj2 = @yamlfiles[yamlfname].dup
-        if obj2
-          if obj
-            objx = obj.merge(obj2)
-          else
-            objx = obj2
-          end
-        else
-          objx = obj
-        end
-      when :REPLACE
-        str=File.read(yamlfname)
-        str2=Filex.expandStr(str, obj, @mes, {"mdfname"=>mdfname, "erubyfnames"=>erubyfnames})
-
-        unless @yamlfiles[yamlfname]
-          @yamlfiles[yamlfname]=YAML.load(str2)
-        end
-        objx0=@yamlfiles[yamlfname].dup
-        if objx0
-          objx = objx
-        else
-          objx = {}
-        end
-      else
-        # do nothing
-      end
-
-      erubystr=erubyfnames.map{|x| checkAndLoadErubyfile(x)}.join("\n")
-      if @dataop == :PATTERN_FOUR
-        mdfname=datayamlfname
-        objx["parentDir"] = ENV['MDEXTAB_MAKE']
-
-        mdstr=checkAndLoadMdfile(mdfname)
-
-        dx = [erubystr, mdstr].join("\n")
-        unless @erubies[mdfname]
-          @erubies[mdfname]=Erubis::Eruby.new(dx)
-        end
-        array=[Filex.expandStr(dx, objx, @mes, {"mdfname"=>mdfname})]
-      else
-        objx.merge!(auxhs)
-          strdata2=checkAndExpandYamlfile(datayamlfname, objx)
-          unless @yamlfiles[datayamlfname]
-            @yamlfiles[datayamlfname]=YAML.load(strdata2)
-          end
-          data=@yamlfiles[datayamlfname].dup
-          if data.class != Hash
-            @mes.outputFatal(data)
-            exit(@mes.exitCode["EXIT_CODE_DATA_CLASS_ISNOT_HASH"])
-          end
-          erubyfname=erubyfnames.last
-          case dataop
-          when :PATTERN_ONE
-            array=loadWithPattern1(data, erubystr)
-          else
-            array=[]
-            # do nothing
-          end
+        @mes.outputFatal("illegal dataop(#{dataop})")
+        exit(@mes.exitCode["EXIT_CODE_ILLEGAL_DATAOP"])
       end
       array
     end
@@ -183,21 +105,40 @@ module Mdextab
 
     def checkAndExpandYamlfile(yamlfname, objx)
       unless @str_yamlfiles[yamlfname]
-        str=Filex.checkAndExpandFile(yamlfname, objx, @mes)
-        @str_yamlfiles[yamlfname]=YAML.load(str)
+#puts "=checkAndExpandYamlfile #{yamlfname}"
+        lines=Filex.checkAndExpandFileLines(yamlfname, objx, @mes)
+        prevQuoto=false
+        str2=lines.map{|x|
+          index=x.index('*')
+          index=x.index(':') unless index
+          if index
+            index2=x.index(%q!'!)
+            unless index2
+              y=Filex.escapeBySingleQuoteInYamlFormatOneLine(x, prevQuoto)
+              prevQuoto=true
+            else
+              y=x
+            end
+#           puts "y=#{y}"
+            y
+          else
+#            puts "x=#{x}"
+            x
+          end
+        }.join("\n")
+#puts("=str2")
+#puts(str2)
+        @str_yamlfiles[yamlfname]=YAML.load(str2)
       end
       @str_yamlfiles[yamlfname]
     end
 
     def checkAndLoadMdfile(mdfname)
       unless @str_mdfiles[mdfname]
-        @str_mdfiles[mdfname]=Filex.checkAndLoadFile(mdfname, @mes)
+        str=Filex.checkAndLoadFile(mdfname, @mes)
+        @str_mdfiles[mdfname]=str
       end
       @str_mdfiles[mdfname]
-    end
-
-    def loadWithPattern1(data, erubystr)
-      [Filex.expandStr(erubystr, data, @mes)]
     end
 
     def postProcess
