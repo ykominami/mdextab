@@ -126,8 +126,8 @@ module Mdextab
             x
           end
         }.join("\n")
-#puts("=str2")
-#puts(str2)
+        @mes.outputDebug("=str2")
+        @mes.outputDebug(str2)
         @str_yamlfiles[yamlfname]=YAML.load(str2)
       end
       @str_yamlfiles[yamlfname]
