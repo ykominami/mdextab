@@ -82,21 +82,32 @@ module Mdextab
     end
 
     def self.escapeBySingleQuoteInYamlFormatOneLine(x, prevQuotoFlag=false)
-      if (m=/(^[\s\-]+)([^\-\s].*)/.match(x))
+      if (m=/(^[\s\-]+)([^\-\s\:].*)/.match(x))
         l=m[1]
         r=m[2]
         if prevQuotoFlag
-#            puts "===A-1"
-          l+" '"+r+"'"
+=begin
+          index=r.index(':')
+          if index
+            r1=r.slice(0,(index+1))
+            r2=r.slice((index+1),r.size)
+            if r2 == nil or r2 == ""
+              l+r1
+            else
+              l+r1+" '"+r2+"'"
+            end
+          else
+            l+r
+          end
+=end
+          l+r
         else
           index=r.index('-')
           index=r.index('*') unless index
           index=r.index(':') unless index
           if index
-#            puts "===A0"
             l+" '"+r+"'"
           else
-#            puts "===A1"
             l+r
           end
         end
@@ -110,10 +121,8 @@ module Mdextab
         end
         #      l,r=x.split(':')
         if r and !(r.strip.empty?)
-#          puts "===2"
           l+" '"+r+"'"
         else
-#          puts "===3"
           l
         end
       else
