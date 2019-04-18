@@ -32,13 +32,7 @@ module Mdextab
           @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
         end
       end
-      @mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE")
       @mes.addExitCode("EXIT_CODE_CANNOT_WRITE_FILE")
-      @mes.addExitCode("EXIT_CODE_DATA_CLASS_ISNOT_HASH")
-      @mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE_OR_EMPTY")
-      @mes.addExitCode("EXIT_CODE_FILE_IS_EMPTY")
-      @mes.addExitCode("EXIT_CODE_NAME_ERROR_EXCEPTION_IN_ERUBY")
-      @mes.addExitCode("EXIT_CODE_ERROR_EXCEPTION_IN_ERUBY")
       @mes.addExitCode("EXIT_CODE_ILLEGAL_DATAOP")
       Filex.setup(@mes)
 
@@ -47,7 +41,7 @@ module Mdextab
       rescue RuntimeError => ex
         mes2 = "Can't write #{@outputfname}"
         @mes.outputFatal(mes2)
-        exit(@mes.exitCode["EXIT_CODE_CANNOT_WRITE_FILE"])
+        exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
       end
     end
 
@@ -84,7 +78,7 @@ module Mdextab
         array=[Filex.expandStr(dx, objy, @mes, {"datayamlfname" => datayamlfname , "templatefile" => templatefile})]
       else
         @mes.outputFatal("illegal dataop(#{dataop})")
-        exit(@mes.exitCode["EXIT_CODE_ILLEGAL_DATAOP"])
+        exit(@mes.ec("EXIT_CODE_ILLEGAL_DATAOP"))
       end
       array
     end
@@ -105,30 +99,7 @@ module Mdextab
 
     def checkAndExpandYamlfile(yamlfname, objx)
       unless @str_yamlfiles[yamlfname]
-#puts "=checkAndExpandYamlfile #{yamlfname}"
-        lines=Filex.checkAndExpandFileLines(yamlfname, objx, @mes)
-        prevQuoto=false
-        str2=lines.map{|x|
-          index=x.index('*')
-          index=x.index(':') unless index
-          if index
-            index2=x.index(%q!'!)
-            unless index2
-              y=Filex.escapeBySingleQuoteInYamlFormatOneLine(x, prevQuoto)
-              prevQuoto=true
-            else
-              y=x
-            end
-#           puts "y=#{y}"
-            y
-          else
-#            puts "x=#{x}"
-            x
-          end
-        }.join("\n")
-        @mes.outputDebug("=str2")
-        @mes.outputDebug(str2)
-        @str_yamlfiles[yamlfname]=YAML.load(str2)
+        @str_yamlfiles[yamlfname]=Filex.checkAndExpandYamlfile(yamlfname, objx, @mes)
       end
       @str_yamlfiles[yamlfname]
     end
