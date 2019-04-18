@@ -5,10 +5,38 @@ module Mdextab
 
   class Filex
     def self.setup(mes)
+      mes.addExitCode("EXIT_CODE_CANNOT_ANALYZE_YAMLFILE")
       mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE_OR_EMPTY")
       mes.addExitCode("EXIT_CODE_FILE_IS_EMPTY")
       mes.addExitCode("EXIT_CODE_NAME_ERROR_EXCEPTION_IN_ERUBY")
       mes.addExitCode("EXIT_CODE_ERROR_EXCEPTION_IN_ERUBY")
+    end
+
+    def self.loadYaml(str, mes)
+      yamlhs={}
+      begin
+        yamlhs=YAML.load(str)
+      rescue Error => ex
+        mes.outputFatal(ex.class)
+        mes.outputFatal(ex.message)
+        mes.outputFatal(ex.backtrace.join("\n"))
+        exit(mes.ec("EXIT_CODE_CANNOT_ANALYZE_YAMLFILE"))
+      end
+
+      yamlhs
+    end
+
+    def self.checkAndLoadYamlfile(yamlfname, mes)
+      str=Filex.checkAndLoadFile(yamlfname, mes)
+      self.loadYaml(str, mes)
+    end
+
+    def self.checkAndExpandYamlfile(yamlfname, objx, mes)
+      lines=Filex.checkAndExpandFileLines(yamlfname, objx, mes)
+      str=self.escapeBySingleQuoteInYamlFormatOneLines(lines).join("\n")
+      mes.outputDebug("=str")
+      mes.outputDebug(str)
+      self.LoadYamlfile(yamlfname, mes)
     end
 
     def self.checkAndExpandFileLines(fname, data, mes)
@@ -22,13 +50,13 @@ module Mdextab
       else
         mesg=%Q!Can not find #{fname} or is empty!
         mes.outputError(mesg)
-        exit(mes.exitCode["EXIT_CODE_CANNOT_FIND_FILE_OR_EMPTY"])
+        exit(mes.ec("EXIT_CODE_CANNOT_FIND_FILE_OR_EMPTY"))
       end
 
       if strdata.strip.empty?
         mesg=%Q!#{fname} is empty!
         mes.outputError(mesg)
-        exit(mes.exitCode["EXIT_CODE_FILE_IS_EMPTY"])
+        exit(mes.ec("EXIT_CODE_FILE_IS_EMPTY"))
       else
         mes.outputInfo(Digest::MD5.hexdigest(strdata))
       end
@@ -47,13 +75,13 @@ module Mdextab
         pp ex.backtrace
         mes.outputFatal(ex.backtrace.join("\n"))
         fnames.map{|x| mes.outputFatal( %Q!#{x[0]}=#{x[1]}! )}
-        exit(mes.exitCode["EXIT_CODE_NAME_ERROR_EXCEPTION_IN_ERUBY"])
+        exit(mes.ec("EXIT_CODE_NAME_ERROR_EXCEPTION_IN_ERUBY"))
       rescue Error => ex
         mes.outputFatal(ex.class)
         mes.outputFatal(ex.message)
         mes.outputFatal(ex.backtrace.join("\n"))
         fnames.map{|x| mes.outputFatal(%Q!#{x[0]}=#{x[1]}!) }
-        exit(mes.exitCode["EXIT_CODE_ERROR_EXCEPTION_IN_ERUBY"])
+        exit(mes.ec("EXIT_CODE_ERROR_EXCEPTION_IN_ERUBY"))
       end
       strdata
     end
@@ -64,21 +92,24 @@ module Mdextab
       strdata2
     end
 
-    def self.escapeBySingleQuoteInYamlFileToStr(fname)
-      self.escapeBySingleQuoteInYamlFileToLines(fname).join("\n")  
-    end
-
-    def self.escapeBySingleQuoteInYamlFileToLines(fname)
-      File.readlines.map{|x|
-        x.chomp!
-        self.escapeBySingleQuoteInYamlFormatOneLine(x)
+    def self.escapeBySingleQuoteInYamlFormatOneLines(lines)
+      prevQuoto=false
+      str=lines.map{|x|
+        index=x.index('*')
+        index=x.index(':') unless index
+        if index
+          index2=x.index(%q!'!)
+          unless index2
+            y=Filex.escapeBySingleQuoteInYamlFormatOneLine(x, prevQuoto)
+            prevQuoto=true
+          else
+            y=x
+          end
+          y
+        else
+          x
+        end
       }
-    end
-
-    def self.escapeBySingleQuoteInYamlFormat(str)
-      str.split("\n").map{|x|
-        self.escapeBySingleQuoteInYamlFormatOneLine(x)
-      }.join("\n")
     end
 
     def self.escapeBySingleQuoteInYamlFormatOneLine(x, prevQuotoFlag=false)
@@ -86,20 +117,6 @@ module Mdextab
         l=m[1]
         r=m[2]
         if prevQuotoFlag
-=begin
-          index=r.index(':')
-          if index
-            r1=r.slice(0,(index+1))
-            r2=r.slice((index+1),r.size)
-            if r2 == nil or r2 == ""
-              l+r1
-            else
-              l+r1+" '"+r2+"'"
-            end
-          else
-            l+r
-          end
-=end
           l+r
         else
           index=r.index('-')
@@ -128,23 +145,6 @@ module Mdextab
       else
 #       puts "===4"
         x
-      end
-    end
-
-    def self.escapeBySingleQuoteInYamlFormatOneLine_0(x)
-      index=x.index(':')
-      if index
-        l=x.slice(0,(index+1))
-        r=x.slice((index+1),x.size)
-      else
-        l=x
-        r=nil
-      end
-#      l,r=x.split(':')
-      if r and !(r.strip.empty?)
-        l+"'"+r+"'"
-      else
-        l
       end
     end
   end
