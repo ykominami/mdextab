@@ -29,12 +29,13 @@ module Mdextab
       unless @mes
         @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt["debug"])
       end
-      @mes.addExitCode("EXIT_CODE_NORMAL_EXIT")
+#      @mes.addExitCode("EXIT_CODE_NORMAL_EXIT")
       @mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE")
       @mes.addExitCode("EXIT_CODE_CANNOT_WRITE_FILE")
       @mes.addExitCode("EXIT_CODE_NEXT_STATE")
       @mes.addExitCode("EXIT_CODE_NIL")
       @mes.addExitCode("EXIT_CODE_EXCEPTION")
+
       @mes.addExitCode("EXIT_CODE_TABLE_END")
       @mes.addExitCode("EXIT_CODE_UNKNOWN")
       @mes.addExitCode("EXIT_CODE_ILLEAGAL_STATE")
@@ -42,9 +43,8 @@ module Mdextab
       Filex.setup(@mes)
 
       unless File.exist?(fname)
-        mes="Can't find #{fname}"
-        @mes.outputError(mes)
-        exit(@mes.exitcode["EXIT_CODE_CANNOT_FIND_FILE"])
+        @mes.outputFatal("Can't find #{fname}")
+        exit(@mes.ec("EXIT_CODE_CANNOT_FIND_FILE"))
       end
 
       begin
@@ -52,7 +52,7 @@ module Mdextab
       rescue => ex
         mesg2="Can't write #{o_fname}"
         @mes.outputFatal(mesg2)
-        exit(@mes.exitcode["EXIT_CODE_CANNOT_WRITE_FILE"])
+        exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
       end
 
       @fname = fname
@@ -172,8 +172,8 @@ module Mdextab
 
         ret = processOneLine(@env.curState, token, l, lineno)
         unless ret
-          @mes.outputError("processOneLine returns nil")
-          exit(@mes.exitcode["EXIT_CODE_NEXT_STATE"])
+          @mes.outputFatal("processOneLine returns nil")
+          exit(@mes.ec("EXIT_CODE_NEXT_STATE"))
         end
         @env.curState = ret
 
@@ -192,7 +192,8 @@ module Mdextab
       if tmp == nil
         @mes.outputError(%Q!kind=#{kind}!)
         @mes.outputError("=== tmp == nil")
-        exit(@mes.exitcode["EXIT_CODE_NIL"])
+        @mes.outputFatal("Next State is nil")
+        exit(@mes.ec("EXIT_CODE_NIL"))
       else
         @mes.outputDebug("tmp=#{tmp}")
       end
@@ -206,7 +207,7 @@ module Mdextab
         @mes.outputFatal(kind)
         @mes.outputFatal(nextState)
         @mes.outputFatal("+++")
-        exit(@mes.exitcode["EXIT_CODE_EXCEPTION"])
+        exit(@mes.ec("EXIT_CODE_EXCEPTION"))
       end
       @mes.outputDebug("#{__LINE__}|nextState=#{nextState}")
       nextState
@@ -231,7 +232,7 @@ module Mdextab
       @mes.outputDebug( "getNewEnv 3 token.kind=#{token.kind} @env.curState=#{@env.curState}" )
     end
 
-    def processTableEnd(token)p
+    def processTableEnd(token)
       prevEnv = peekPrevEnv()
       if prevEnv
         tmp_table = @env.table
@@ -266,9 +267,10 @@ module Mdextab
         else
           v = @env.curState
           v = "nil" unless v
-          @mes.outputError("E100 @env.curState=#{v}")
-          @mes.outputError("@env.table=#{@env.table}")
-          exit(@mes.exitcode["EXIT_CODE_TABLE_END"])
+          @mes.outputFatal("E100 @env.curState=#{v}")
+          @mes.outputFatal("@env.table=#{@env.table}")
+          @mes.outputFatal("IllegalState(#{@env.curState} in processTableEnd(#{token})")
+          exit(@mes.ec("EXIT_CODE_TABLE_END"))
         end
       else
         @mes.outputDebug( "1 - processTableEnd @env.curState=#{@env.curState} @return_from_nested_env~#{@return_from_nested_env}")
@@ -330,8 +332,8 @@ module Mdextab
           outputInElse('*'+token.opt[:content])
           outputInElse(token.opt[:content])
         else
-          @mes.outputError( ":START [unknown]")
-          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
+          @mes.outputFatal("In :START unknown tag=(#{token.kind}) in processOneLine")
+          exit(@mes.ec("EXIT_CODE_UNKNOWN"))
         end
       when :OUT_OF_TABLE
         case token.kind
@@ -350,8 +352,8 @@ module Mdextab
           # treat as :ELSE
           outputInElse(":" + token.opt[:content])
         else
-          @mes.outputError( ":OUT_OF_TABLE [unknown]")
-          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
+          @mes.outputFatal("In :OUT_OF_TABLE unknown tag=(#{token.kind}) in processOneLine")          
+          exit(@mes.ec("EXIT_CODE_UNKNOWN"))
         end
       when :IN_TABLE
         case token.kind
@@ -377,8 +379,8 @@ module Mdextab
           @env.star = false
           outputInElse('*'+token.opt[:content])
         else
-          @mes.outputError( ":IN_TABLE [unknown]")
-          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
+          @mes.outputFatal("In :IN_TABLE unknown tag=(#{token.kind}) in processOneLine")          
+          exit(@mes.ec("EXIT_CODE_UNKNOWN"))
         end
       when :IN_TABLE_BODY
         case token.kind
@@ -402,8 +404,8 @@ module Mdextab
           @env.star = false       
           outputInElse('*'+token.opt[:content])
         else
-          @mes.outputError( ":IN_TABLE_BODY [unknown]")
-          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
+          @mes.outputFatal("In :IN_TABLE_BODY unknown tag=(#{token.kind}) in processOneLine")          
+          exit(@mes.ec("EXIT_CODE_UNKNOWN"))
           #
         end
       when :IN_TH
@@ -423,8 +425,8 @@ module Mdextab
           @env.star = false       
           tableThAppendInElse('*'+token.opt[:content])
         else
-          @mes.outputError( ":IN_TH [unknown]")
-          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
+          @mes.outputFatal("In :IN_TH unknown tag=(#{token.kind}) in processOneLine")          
+          exit(@mes.ec("EXIT_CODE_UNKNOWN"))
           #
         end
       when :IN_TH_NO_TBODY
@@ -444,8 +446,8 @@ module Mdextab
           @env.star = false       
           tableThAppendInElse('*'+token.opt[:content])
         else
-          @mes.outputError( ":IN_TH_NO_TBODY [unknown]")
-          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
+          @mes.outputFatal("In :IN_TH_NO_TBODY unknown tag=(#{token.kind}) in processOneLine")          
+          exit(@mes.ec("EXIT_CODE_UNKNOWN"))
           #
         end
       when :IN_TD
@@ -467,8 +469,8 @@ module Mdextab
           @env.star = false       
           tableTdAppendInElse('*'+token.opt[:content])
         else
-          @mes.outputError( ":IN_TD [unknown]")
-          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
+          @mes.outputFatal("In :IN_TD unknown tag=(#{token.kind}) in processOneLine")          
+          exit(@mes.ec("EXIT_CODE_UNKNOWN"))
           #
         end
       when :IN_TD_NO_TBODY
@@ -492,18 +494,19 @@ module Mdextab
           @env.star = false       
           tableTdAppendInElse('*'+token.opt[:content])
         else
-          @mes.outputError( ":IN_TD_NO_TBODY [unknown]")
-          exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
+          @mes.outputFatal("In :IN_TD_NO_TBODY unknown tag=(#{token.kind}) in processOneLine")          
+          exit(@mes.ec("EXIT_CODE_UNKNOWN"))
           #
         end
       else
-        @mes.outputError( "unknown state")
-        exit(@mes.exitcode["EXIT_CODE_UNKNOWN"])
+        @mes.outputFatal("In Unknown state(#{@env.curState}) in processOneLine")          
+        exit(@mes.ec("EXIT_CODE_UNKNOWN"))
         #
       end
 
       unless @return_from_nested_env
         nextState = getNextState(token, line)
+
         @mes.outputDebug("#{__LINE__}|nextState=#{nextState}")
       else
         nextState = @env.curState
@@ -548,35 +551,35 @@ module Mdextab
       case @env.curState
       when :OUT_OF_TABLE
         if @envs.size > 1
-          @logger.info("illeagal nested env after parsing|:OUT_OF_TABLE")
-          @mes.outputDebug("@envs.size=#{@envs.size} :TABLE_START #{@env.table.lineno}" )
+          @mes.outputFatal("illeagal nested env after parsing|:OUT_OF_TABLE")
+          @mes.outputFatal("@envs.size=#{@envs.size} :TABLE_START #{@env.table.lineno}" )
           @envs.map{ |x| 
             @mes.outputDebug("== @envs.curState=#{x.curState} :TABLE_START #{x.table.lineno}") 
           }
           @mes.outputDebug("== @env.table")
-          @logger.info(@env.table)
-          raise
+          @mes.outputInfo(@env.table)
+          exit(@mes.ec("EXIT_CODE_EXCEPTION"))
         end
       when :START
         if @envs.size > 1
-          @mes.outputError("illeagal nested env after parsing|:START")
-          @mes.outputError("@envs.size=#{@envs.size}")
+          @mes.outputFatal("illeagal nested env after parsing|:START")
+          @mes.outputFatal("@envs.size=#{@envs.size}")
           @envs.map{ |x| 
             @mes.outputError("== @envs.curState=#{x.curState} :TABLE_START #{x.table.lineno}") 
           }
           @mes.outputError("== @env.table")
           @mes.outputError(@env.table)
-          raise
+          exit(@mes.ec("EXIT_CODE_EXCEPTION"))
         end
       else
-        @mes.outputError("illeagal state after parsing(#{@env.curState}|#{@env.curState.class})")
-        @mes.outputError("@envs.size=#{@envs.size}")
+        @mes.outputFatal("illeagal state after parsing(#{@env.curState}|#{@env.curState.class})")
+        @mes.outputFatal("@envs.size=#{@envs.size}")
         @mes.outputError("== @env.curState=#{@env.curState}")
         @envs.map{ |x| 
           @mes.outputError("== @envs.curState=#{x.curState} #{@fname}:#{x.table.lineno}") 
         }
         @mes.outputError("")
-        exit(@mes.exitCode["EXIT_CODE_ILLEAGAL_STATE"])
+        exit(@mes.ed("EXIT_CODE_ILLEAGAL_STATE"))
       end
     end
   end
