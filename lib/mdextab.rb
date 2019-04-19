@@ -49,7 +49,11 @@ module Mdextab
 
       begin
         @output = File.open(o_fname, 'w')
-      rescue => ex
+      rescue IOError=> ex
+        mesg2="Can't write #{o_fname}"
+        @mes.outputFatal(mesg2)
+        exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
+      rescue SystemCallError => ex
         mesg2="Can't write #{o_fname}"
         @mes.outputFatal(mesg2)
         exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))

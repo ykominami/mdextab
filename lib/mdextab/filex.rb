@@ -6,6 +6,7 @@ module Mdextab
   class Filex
     def self.setup(mes)
       mes.addExitCode("EXIT_CODE_CANNOT_ANALYZE_YAMLFILE")
+      mes.addExitCode("EXIT_CODE_CANNOT_READ_FILE")
       mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE_OR_EMPTY")
       mes.addExitCode("EXIT_CODE_FILE_IS_EMPTY")
       mes.addExitCode("EXIT_CODE_NAME_ERROR_EXCEPTION_IN_ERUBY")
@@ -46,7 +47,19 @@ module Mdextab
     def self.checkAndLoadFile(fname, mes)
       size=File.size?(fname)
       if size and size > 0
-        strdata=File.read(fname)
+        begin
+          strdata=File.read(fname)
+        rescue IOError => ex
+          mes2 = "Can't read #{fname}"
+          @mes.outputFatal(mes2)
+          @mes.outputException(ex)
+          exit(@mes.ec("EXIT_CODE_CANNOT_READ_FILE"))
+        rescue SystemCallError => ex
+          mes2 = "Can't write #{fname}"
+          @mes.outputFatal(mes2)
+          @mes.outputException(ex)
+          exit(@mes.ec("EXIT_CODE_CANNOT_READ_FILE"))
+        end
       else
         mesg=%Q!Can not find #{fname} or is empty!
         mes.outputError(mesg)
