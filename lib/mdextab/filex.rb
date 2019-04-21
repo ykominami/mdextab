@@ -6,9 +6,6 @@ module Mdextab
   class Filex
     def self.setup(mes)
       mes.addExitCode("EXIT_CODE_CANNOT_ANALYZE_YAMLFILE")
-      mes.addExitCode("EXIT_CODE_CANNOT_READ_FILE")
-      mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE_OR_EMPTY")
-      mes.addExitCode("EXIT_CODE_FILE_IS_EMPTY")
       mes.addExitCode("EXIT_CODE_NAME_ERROR_EXCEPTION_IN_ERUBY")
       mes.addExitCode("EXIT_CODE_ERROR_EXCEPTION_IN_ERUBY")
     end
@@ -18,9 +15,7 @@ module Mdextab
       begin
         yamlhs=YAML.load(str)
       rescue Error => ex
-        mes.outputFatal(ex.class)
-        mes.outputFatal(ex.message)
-        mes.outputFatal(ex.backtrace.join("\n"))
+        mes.outputException(ex)
         exit(mes.ec("EXIT_CODE_CANNOT_ANALYZE_YAMLFILE"))
       end
 
@@ -37,7 +32,7 @@ module Mdextab
       str=self.escapeBySingleQuoteInYamlFormatOneLines(lines).join("\n")
       mes.outputDebug("=str")
       mes.outputDebug(str)
-      self.LoadYamlfile(yamlfname, mes)
+      self.loadYaml(str, mes)
     end
 
     def self.checkAndExpandFileLines(fname, data, mes)
@@ -68,10 +63,10 @@ module Mdextab
 
       if strdata.strip.empty?
         mesg=%Q!#{fname} is empty!
-        mes.outputError(mesg)
+        mes.outputFatal(mesg)
         exit(mes.ec("EXIT_CODE_FILE_IS_EMPTY"))
       else
-        mes.outputInfo(Digest::MD5.hexdigest(strdata))
+#        mes.outputInfo(Digest::MD5.hexdigest(strdata))
       end
 
       strdata
@@ -79,20 +74,15 @@ module Mdextab
 
     def self.expandStr(erubyStr, data, mes,fnames={})
       begin
+puts "erubyStr=|#{erubyStr}|"
+puts "data=#{data}"
         strdata=Erubis::Eruby.new(erubyStr).result(data)
       rescue NameError => ex
-        puts "ex.class=#{ex.class}"
-        mes.outputFatal(ex.class)
-        puts "ex.message=#{ex.message}"
-        mes.outputFatal(ex.message)
-        pp ex.backtrace
-        mes.outputFatal(ex.backtrace.join("\n"))
+        mes.outputException(ex)
         fnames.map{|x| mes.outputFatal( %Q!#{x[0]}=#{x[1]}! )}
         exit(mes.ec("EXIT_CODE_NAME_ERROR_EXCEPTION_IN_ERUBY"))
       rescue Error => ex
-        mes.outputFatal(ex.class)
-        mes.outputFatal(ex.message)
-        mes.outputFatal(ex.backtrace.join("\n"))
+        mes.outputException(ex)
         fnames.map{|x| mes.outputFatal(%Q!#{x[0]}=#{x[1]}!) }
         exit(mes.ec("EXIT_CODE_ERROR_EXCEPTION_IN_ERUBY"))
       end
@@ -101,6 +91,9 @@ module Mdextab
 
     def self.checkAndExpandFile(fname, objx, mes)
       strdata=checkAndLoadFile(fname, mes)
+p fname
+p strdata
+p objx
       strdata2=expandStr(strdata, objx, mes, {fname: fname})
       strdata2
     end
@@ -130,13 +123,13 @@ module Mdextab
         l=m[1]
         r=m[2]
         if prevQuotoFlag
-          l+r
+          l+"'"+r+"'"
         else
           index=r.index('-')
           index=r.index('*') unless index
           index=r.index(':') unless index
           if index
-            l+" '"+r+"'"
+            l+"'"+r+"'"
           else
             l+r
           end
@@ -151,12 +144,11 @@ module Mdextab
         end
         #      l,r=x.split(':')
         if r and !(r.strip.empty?)
-          l+" '"+r+"'"
+          l+"'"+r+"'"
         else
           l
         end
       else
-#       puts "===4"
         x
       end
     end
