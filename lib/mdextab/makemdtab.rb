@@ -32,19 +32,18 @@ module Mdextab
           @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
         end
       end
-      @mes.addExitCode("EXIT_CODE_CANNOT_WRITE_FILE")
       @mes.addExitCode("EXIT_CODE_ILLEGAL_DATAOP")
       Filex.setup(@mes)
 
       begin
         @output = File.open(@outputfname, 'w')
       rescue IOError => ex
-        mes2 = "Can't write #{@outputfname}"
+        mes2 = "Can't write #{@outputfname} 1"
         @mes.outputFatal(mes2)
         @mes.outputException(ex)
         exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
       rescue SystemCallError => ex
-        mes2 = "Can't write #{@outputfname}"
+        mes2 = "Can't write #{@outputfname} 2"
         @mes.outputFatal(mes2)
         @mes.outputException(ex)
         exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
@@ -62,13 +61,23 @@ module Mdextab
       case dataop
       when :FILE_INCLUDE
         mdfname=datayamlfname
-        objy={"parentDir" => '%q!' + ENV['MDEXTAB_MAKE'] + '!' }
-        erubyExanpdedStr=["<% ", Filex.expandStr(@erubyVariableStr, objy, @mes), " %>"].join("\n")
-
+        objy={"parentDir" => '%q!' + Dir.pwd + '!' }
+        erubyExanpdedStr=""
+        if @erubyVariableStr 
+          if @erubyVariableStr.empty?
+            erubyExanpdedStr=""
+          else
+            erubyExanpdedStr=["<% ", Filex.expandStr(@erubyVariableStr, objy, @mes), " %>"].join("\n")
+          end
+        end
         mdstr=checkAndLoadMdfile(mdfname)
         dx = [erubyExanpdedStr, @erubyStaticStr, mdstr].join("\n")
         objz=auxhs.merge(objx)
-        array=[Filex.expandStr(dx, objz, @mes, {"mdfname" => mdfname})]
+        if dx.strip.empty?
+          puts "empty mdfname=#{mdfname}"
+        else
+          array=[Filex.expandStr(dx, objz, @mes, {"mdfname" => mdfname})]
+        end
       when :YAML_TO_MD
         @mes.outputDebug(":YAML_TO_MD")
         @mes.outputDebug("datayamlfname=#{datayamlfname}")
