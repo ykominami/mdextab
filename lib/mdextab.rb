@@ -29,13 +29,10 @@ module Mdextab
       unless @mes
         @mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt["debug"])
       end
-#      @mes.addExitCode("EXIT_CODE_NORMAL_EXIT")
-      @mes.addExitCode("EXIT_CODE_CANNOT_FIND_FILE")
-      @mes.addExitCode("EXIT_CODE_CANNOT_WRITE_FILE")
+
       @mes.addExitCode("EXIT_CODE_NEXT_STATE")
       @mes.addExitCode("EXIT_CODE_NIL")
       @mes.addExitCode("EXIT_CODE_EXCEPTION")
-
       @mes.addExitCode("EXIT_CODE_TABLE_END")
       @mes.addExitCode("EXIT_CODE_UNKNOWN")
       @mes.addExitCode("EXIT_CODE_ILLEAGAL_STATE")
