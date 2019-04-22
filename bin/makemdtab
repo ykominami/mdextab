@@ -3,302 +3,60 @@
 
 require 'bundler/setup'
 require 'mdextab'
-require 'digest'
+require 'messagex'
 
 require 'simpleoptparse'
-require 'byebug'
-
-EXIT_CODE_NORMAL_EXIT=0
-EXIT_CODE_CANNOT_FILE_FILE=101
-EXIT_CODE_CANNOT_WRITE_FILE=102
-EXIT_CODE_ARGV_SIZE=103
-EXIT_CODE_MISSING_REQUIRED_ARGUMENT=104
-EXIT_CODE_CANNOTFIND_YAMLFILE_OR_EMPTY=105
-EXIT_CODE_YAMLFILE_IS_EMPTY=106
-EXIT_CODE_CANNOTFIND_ERUBYFILE_OR_EMPTY=107
-EXIT_CODE_ERUBYFILE_IS_EMPTY=108
-EXIT_CODE_CANNOTFIND_MDFILE_OR_EMPTY=109
-EXIT_CODE_MDFILE_IS_EMPTY=110
-
-class Makemdtab
-  def initialize(opts, erubyfnames)
-    @dataop=opts["dataop"]
-    @datayamlfname=opts["data"]
-    @yamlop=opts["yamlop"]
-    @yamlfname=opts["setting"]
-    @auxyamlfname=opts["auxsetting"]
-    @erubyfnames=erubyfnames
-    @outputfname=opts["output"]
-
-    @exit_cannot_find_file=1
-    @exit_cannot_write_file=2
-
-    @erubies = {}
-
-    @logger=Logger.new(STDOUT)
-    @logger.level = Logger::INFO
-    @logger.level = Logger::DEBUG if opts["debug"]
-    @logger.formatter = proc do |severity, datetime, progname, msg|
-      "#{msg}\n"
-    end
-
-    [@datayamlfname, @yamlfname, @auxyamlfname, @erubyfnames].flatten.each do |fname|
-      next if File.exist?(fname)
-
-      mes="Can't find #{fname}"
-      outputError(mes)
-      exit(EXIT_CODE_CANNOT_FILE_FILE)
-    end
-
-    begin
-      @output = File.open(@outputfname, 'w')
-    rescue RuntimeError => ex
-      mes2 = "Can't write #{@outputfname}"
-      outputError(mes2)
-      exit(EXIT_CODE_CANNOT_WRITE_FILE)
-    end
-  end
-
-  def outputError(mes)
-    if @logger
-      @logger.error(mes)
-    else
-      STDERR.puts(mes)
-    end
-  end
-
-  def makeMd()
-    load(@dataop, @datayamlfname, @yamlop, @auxyamlfname, @yamlfname, @erubyfnames).map{|x| 
-      @output.puts(x)
-    }
-  end
-
-  def load(dataop, datayamlfname, yamlop, auxyamlfname, yamlfname, erubyfnames)
-    eruby0 = nil
-    eruby1 = nil
-    obj = {}
-    obj0 = YAML.load_file(auxyamlfname) if auxyamlfname
-    obj = obj0 if obj0
-
-    case yamlop
-    when :MERGE
-      obj2 = YAML.load_file(yamlfname)
-      if obj2
-        if obj
-          objx = obj.merge(obj2) 
-        else
-          objx = obj2
-        end
-      else
-        objx = obj
-      end
-    when :REPLACE
-      str = File.read(yamlfname)
-      str2 = Erubis::Eruby.new(str).result(obj)
-      objx0 = YAML.load(str2)
-      if objx0
-        objx = objx
-      else
-        objx = {}
-      end
-    else
-      # do nothing
-    end
-
-    erubystr=erubyfnames.map{|x| checkAndLoadErubyfile(x)}.join("\n")
-    if @dataop == :PATTERN_FOUR
-      mdfname=datayamlfname
-      objx["PARENT_DIR"] = ENV['MDEXTAB_MAKE']
-
-      mdstr=checkAndLoadMdfile(mdfname)
-
-      dx = [erubystr, mdstr].join("\n")
-      @erubies[mdfname] ||= Erubis::Eruby.new(dx)
-      array=[@erubies[mdfname].result(objx)]
-    else
-      puts "datayamlfname=#{datayamlfname}"
-      strdata2=checkAndExpandYamlfile(datayamlfname, objx) 
-      data = YAML.load(strdata2)
-if data.class != Hash
-  puts "strdata2=#{strdata2}"
-  p data
-  exit(300)
-end
-      erubyfname=erubyfnames.last
-      case dataop
-      when :PATTERN_ONE
-        array=loadWithPattern1(data, erubyfname, erubystr)
-      when :PATTERN_TWO
-        array=loadWithPattern2(data, erubyfname, erubystr)
-      when :PATTERN_THREE
-        dir=File.dirname(datayamlfname)
-        array=loadWithPattern3(data, erubyfname, erubystr, dir)
-      else
-        array=[]
-        # do nothing
-      end
-    end
-    array
-  end
-
-  def checkAndLoadErubyfile(erubyfname)
-    size=File.size?(erubyfname)
-    if size and size > 0
-      erubystr=File.read(erubyfname)
-    else
-      mes=%Q!Can not find #{erubyfname} or is empty!
-      outputError(mes)
-      exit(EXIT_CODE_CANNOTFIND_ERUBYFILE_OR_EMPTY)
-    end
-    if erubystr.strip.empty?
-      mes=%Q!#{erubyfname} is empty!
-      outputError(mes)
-      exit(EXIT_CODE_ERUBYFILE_IS_EMPTY)
-    end
-    erubystr
-  end
-
-  def checkAndLoadMdfile(mdfname) 
-    size2=File.size?(mdfname)
-    if size2 and size2 > 0
-      mdstr=File.read(mdfname)
-    else
-      mes=%Q!Can not find #{mdfname} or is empty!
-      outputError(mes)
-      exit(EXIT_CODE_CANNOTFIND_MDFILE_OR_EMPTY)
-    end
-    if mdstr.strip.empty?
-      mes=%Q!#{mdfname} is empty!
-      outputError(mes)
-      exit(EXIT_CODE_MDFILE_IS_EMPTY)
-    end
-    mdstr
-  end
-
-  def checkAndExpandYamlfile(yamlfname, objx) 
-    size=File.size?(yamlfname)
-    if size and size > 0
-      puts File.mtime(yamlfname)
-      strdata = File.read(yamlfname)
-    else
-      mes=%Q!Can not find #{yamlfname} or is empty!
-      outputError(mes)
-      exit(EXIT_CODE_CANNOTFIND_YAMLFILE_OR_EMPTY)
-    end
-
-    if strdata.strip.empty?
-      mes=%Q!#{yamlfname} is empty!
-      outputError(mes)
-      exit(EXIT_CODE_YAMLFILE_IS_EMPTY)
-    else
-      puts Digest::MD5.hexdigest(strdata)
-      #
-      strdata2 = Erubis::Eruby.new(strdata).result(objx)
-    end
-
-    strdata2
-  end
- 
-  def loadWithPattern1(data, erubyfname, erubystr)
-    @erubies[erubyfname] ||= Erubis::Eruby.new(erubystr)
-    [@erubies[erubyfname].result(data)]
-  end
-
-  def loadWithPattern2(data, erubyfname, erubystr)
-    data.map{ |x|
-      @erubies[erubyfname] ||= Erubis::Eruby.new(erubystr)
-      @erubies[erubyfname].result(x)
-    }
-  end
-
-  def loadWithPattern3(data, erubyfname, erubystr, dir)
-    hs={}
-    data.each do |k,v|
-      if /items/.match(k)
-        hs[k]=[]
-        v.each do |v2|
-          if /^path=(.*)/.match(v2)
-            hs[k] << File.join(dir, $1)
-          else
-            hs[k] << v2
-          end
-        end
-      else
-        hs[k]=v
-      end
-    end
-    @erubies[erubyfname] ||= Erubis::Eruby.new(erubystr)
-    [@erubies[erubyfname].result(hs)]
-  end
-
-  def postProcess
-    @output.close if @output
-    @output = nil
-  end
-end
 
 opts = {}
-banner = "Usage: bundle exec ruby bin/makemdtab [--contest] [--debug] -o outfname -d datafname --y merge|replace -p pattern_one|pattern_two|pattern_three -s yamlfname [-a auxyamlfname] erubyfname [erubyfname2 *]"
+banner = "Usage: bundle exec ruby bin/makemdtab [--debug|--verbose] (-o|--output) outfname (-d|--data) datafname  yamlfname --dataop (fileinclude|yamltomd) -es erubystatic -ev erubyvariable *]"
 if ARGV.size == 0
   puts(banner)
-  exit(EXIT_CODE_ARGV_SIZE)
+  exit(@mes.ec("EXIT_CODE_ARGV"))
 end
 
 Simpleoptparse::Simpleoptparse.parse(ARGV , opts , banner , Mdextab::VERSION , nil){ |parser|
   parser.on('--debug'  ) {|x| opts["debug"] = true}
-  parser.on('--contest'  ) {|x| opts["kind"] = :contest}
-  parser.on('-d value', '--data' ,'data file') {|x| opts["data"] = x}
-  parser.on('-s value', '--setting') {|x| opts["setting"] = x}
-  parser.on('-a [value]', '--auxsetting') {|x| opts["auxsetting"] = x}
-  parser.on('-o value', '--output') {|x| opts["output"] = x}
-  parser.on('-y value', '--yamlop') {|x| 
-                                         case x.upcase
-                                         when /^MERGE/
-                                         opts["yamlop"] = :MERGE
-                                         when /^REPLACE/
-                                         opts["yamlop"] = :REPLACE
-                                         else
-                                           # do nothing
-                                         end
-                                       }
-  parser.on('-p value', '--dataop') {|x| 
-                                         case x.upcase
-                                         when /^PATTERN_ONE/
-                                           opts["dataop"] = :PATTERN_ONE
-                                         when /^PATTERN_TWO/
-                                           opts["dataop"] = :PATTERN_TWO
-                                         when /^PATTERN_THREE/
-                                           opts["dataop"] = :PATTERN_THREE
-                                         when /^PATTERN_FOUR/
-                                           opts["dataop"] = :PATTERN_FOUR
-                                         else
-                                           # do nothing
-                                         end
-                                       }
+  parser.on('--verbose'  ) {|x| opts["verbose"] = true}
+  parser.on('--es path'  ) {|x| opts["fnameStatic"] = x}
+  parser.on('--ev path'  ) {|x| opts["fnameVariable"] = x}
+  parser.on('-o path', '--output'  ) {|x| opts["output"] = opts["o"] = x}
+  parser.on('-d path', '--data'  ) {|x| opts["data"] = opts["d"] = x}
+  parser.on('--dataop op') {|x| 
+    if /f/.match?(x.downcase)
+      opts["dataop"]=:YAML_TO_MD                               
+    else
+      opts["dataop"]=:FILE_INCLUDE
+    end
+  }
 }
+if opts["debug"]
+  mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
+elsif opts["verbose"]
+  mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :verbose)
+else
+  mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
+end
 
-unless opts["output"] and opts["yamlop"] and opts["dataop"]
+unless opts["data"]
+  puts("Not specified -data")
   puts(banner)
-  puts "don't be specified -d output" unless opts["output"]
-  puts "don't be specified -y value" unless opts["yamlop"]
-  puts "don't be specified -p value" unless opts["dataop"]
-  p ARGV
-  p opts
-  exit(EXIT_CODE_MISSING_REQUIRED_ARGUMENT)
+  exit(mes.ec("EXIT_CODE_ARGV_ERROR"))
 end
 
-puts "# makemdtab Start #"
-puts "|||||||||||| opts['output']=#{opts['output']}"
-puts "|||||||||||| ARGV=#{ARGV}"
-opts.each do |k,v|
-  puts "|||||||||||| opts[#{k}]=#{v}"
+unless opts["output"]
+  puts("Not specified -oputut")
+  puts(b ewwanner)
+  exit(mes.ec("EXIT_CODE_ARGV_ERROR"))
 end
 
-x=Makemdtab.new(opts, ARGV)
-x.makeMd()
+rootsettingfname=ARGV[0]
+
+#opts["data"]=
+#opts["output"]=
+
+x=Mdextab::Makemdtab.create(opts, opts["fnameVariable"], opts["fnameStatic"], rootsettingfname, mes)
+
+x.makeMd2()
 x.postProcess
 puts "# makemdtab End #"
-exit(EXIT_CODE_NORMAL_EXIT)
-
-
-
+exit(mes.ec("EXIT_CODE_NORMAL_EXIT"))
