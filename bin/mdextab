@@ -15,14 +15,7 @@ Simpleoptparse::Simpleoptparse.parse(ARGV , opts , banner , Mdextab::VERSION , n
 fname = ARGV[0]
 oFname = ARGV[1]
 yamlFname = ARGV[2]
-auxiliaryYamlFname = ARGV[3]
-m = Mdextab::Mdextab.new(opts,fname,oFname,yamlFname,auxiliaryYamlFname)
-m.parse
+opts["yamlfname"] = yamlfname
+m = Mdextab::Mdextab.new(opts,fname,oFname)
+m.parse2(yamlFname)
 m.end
-
-puts "##### Mdextab fname=#{fname}"
-puts "##### Mdextab oFname=#{oFname}"
-puts "##### Mdextab yamlFname=#{yamlFname}"
-puts "##### Mdextab auxiliaryYamlFname=#{auxiliaryYamlFname}"
-
-exit(0)
