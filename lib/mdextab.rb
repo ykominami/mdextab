@@ -19,7 +19,6 @@ module Mdextab
   class Mdextab
     def initialize(opt, fname, o_fname, mes=nil)
       @fname = fname
-      @yamlfname = opt["yamlfname"]
 
       @envStruct = Struct.new(:table, :star, :curState)
       @env = nil
@@ -56,7 +55,6 @@ module Mdextab
         exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
       end
 
-      @fname = fname
       @state = {
         START: {TABLE_START: :IN_TABLE , ELSE: :OUT_OF_TABLE, STAR_START: :START, STAR_END: :START},
         OUT_OF_TABLE: {TABLE_START: :IN_TABLE , ELSE: :OUT_OF_TABLE, STAR_START: :OUT_OF_TABLE, STAR_END: :OUT_OF_TABLE, TD: :OUT_OF_TABLE },
@@ -154,7 +152,7 @@ module Mdextab
       ret
     end
 
-    def parse2(hs)
+    def parse(hs)
       @env = getNewEnv()
       lineno=0
       Filex::checkAndExpandFileLines(@fname, hs, @mes).each{ |l|
@@ -184,6 +182,12 @@ module Mdextab
         @mes.outputDebug("-----")
       }
       checkEnvs
+    end
+
+    def parse2(yamlfname)
+      str=Filex.checkAndLoadYamlfile(yamlfname, @mes)
+      hs=Filex.loadYaml(str, @mes)
+      parse(hs)
     end
 
     def getNextState(token, line)
