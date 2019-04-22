@@ -2,6 +2,7 @@ module Mdextab
   require 'digest'
   require 'pp'
   require 'erubis'
+  require 'yaml'
 
   class Filex
     def self.setup(mes)
