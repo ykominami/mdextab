@@ -11,7 +11,6 @@ module Mdextab
       @str_erubyfiles={}
       @dataop=opts["dataop"]
       @datayamlfname=opts["data"]
-      @yamlop=opts["yamlop"]
       @erubyVariableStr=erubyVariableStr
       @erubyStaticStr=erubyStaticStr
       @outputfname=opts["output"]
@@ -19,8 +18,6 @@ module Mdextab
 
       @exit_cannot_find_file=1
       @exit_cannot_write_file=2
-
-      @erubies = {}
 
       @mes=mes
       unless @mes
@@ -50,6 +47,21 @@ module Mdextab
       end
     end
 
+    def self.create(opts, fnameVariable, fnameStatic, rootSettingfile, mes)
+      Filex.setup(mes)
+
+      unless File.exist?(opts["output"])
+        mes.outputFatal("Can't find #{opts["output"]}")
+        exit(mes.ec("EXIT_CODE_CANNOT_FIND_FILE"))
+      end
+      objByYaml = Filex.checkAndLoadYamlfile(rootSettingfile, mes)
+
+      strVariable=Filex.checkAndLoadFile(fnameVariable, mes) if fnameVariable
+      strStatic=["<% " , Filex.checkAndExpandFile(fnameStatic, objByYaml, mes), "%>"].join("\n") if fnameStatic
+      
+       Makemdtab.new(opts, strVariable, strStatic, objByYaml, mes)
+    end
+
     def makeMd2(templatefile=nil, auxhs={})
       load2(@dataop, @datayamlfname, templatefile, auxhs).map{|x|
         @output.puts(x)
@@ -70,8 +82,8 @@ module Mdextab
             erubyExanpdedStr=["<% ", Filex.expandStr(@erubyVariableStr, objy, @mes), " %>"].join("\n")
           end
         end
-        mdstr=checkAndLoadMdfile(mdfname)
-        dx = [erubyExanpdedStr, @erubyStaticStr, mdstr].join("\n")
+        mbstr=Filex.checkAndLoadFile(mdfname, @mes)
+        dx = [erubyExanpdedStr, @erubyStaticStr, mbstr].join("\n")
         objz=auxhs.merge(objx)
         if dx.strip.empty?
           puts "empty mdfname=#{mdfname}"
@@ -83,10 +95,11 @@ module Mdextab
         @mes.outputDebug("datayamlfname=#{datayamlfname}")
         @mes.outputDebug("objx=#{objx}")
 
-        objy=checkAndExpandYamlfile(datayamlfname, objx)
+        objy=Filex.checkAndExpandYamlfile(datayamlfname, objx, @mes)
         @mes.outputDebug("objy=#{objy}")
         @mes.outputDebug("templatefile=#{templatefile}")
-        erubystr=checkAndLoadErubyfile(templatefile)
+
+        erubystr=Filex.checkAndLoadFile(templatefile, @mes)
         @mes.outputDebug("erubystr=#{erubystr}")
         dx = [@erubyStaticStr, erubystr].join("\n")
         @mes.outputDebug("dx=#{dx}")
@@ -96,35 +109,6 @@ module Mdextab
         exit(@mes.ec("EXIT_CODE_ILLEGAL_DATAOP"))
       end
       array
-    end
-
-    def checkAndLoadErubyfile(erubyfname)
-      unless @str_erubyfiles[erubyfname]
-        @str_erubyfiles[erubyfname]=Filex.checkAndLoadFile(erubyfname, @mes)
-      end
-      @str_erubyfiles[erubyfname]
-    end
-
-    def checkAndExpandErubyfile(erubyfname, objx)
-      unless @str_erubyfiles[yamlfname]
-        @str_erubyfiles[yamlfname]=Filex.checkAndExpandFile(erubyfname, objx, @mes)
-      end
-      @str_erubyfiles[erubyfname]
-    end
-
-    def checkAndExpandYamlfile(yamlfname, objx)
-      unless @str_yamlfiles[yamlfname]
-        @str_yamlfiles[yamlfname]=Filex.checkAndExpandYamlfile(yamlfname, objx, @mes)
-      end
-      @str_yamlfiles[yamlfname]
-    end
-
-    def checkAndLoadMdfile(mdfname)
-      unless @str_mdfiles[mdfname]
-        str=Filex.checkAndLoadFile(mdfname, @mes)
-        @str_mdfiles[mdfname]=str
-      end
-      @str_mdfiles[mdfname]
     end
 
     def postProcess
