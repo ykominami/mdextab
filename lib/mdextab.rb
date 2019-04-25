@@ -9,7 +9,7 @@ require 'mdextab/th'
 require 'mdextab/token'
 require 'mdextab/tr'
 require 'mdextab/makemdtab'
-require 'mdextab/filex'
+require 'filex'
 
 require 'byebug'
 

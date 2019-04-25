@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
-
 require 'bundler/setup'
 require 'mdextab'
 require 'messagex'
@@ -19,16 +18,19 @@ Simpleoptparse::Simpleoptparse.parse(ARGV , opts , banner , Mdextab::VERSION , n
   parser.on('--verbose'  ) {|x| opts["verbose"] = true}
   parser.on('--es path'  ) {|x| opts["fnameStatic"] = x}
   parser.on('--ev path'  ) {|x| opts["fnameVariable"] = x}
+  parser.on('-t path', '--template'  ) {|x| opts["template"] = opts["t"] = x}
+  parser.on('-y path', '--yaml'  ) {|x| opts["yaml"] = opts["y"] = x}
   parser.on('-o path', '--output'  ) {|x| opts["output"] = opts["o"] = x}
   parser.on('-d path', '--data'  ) {|x| opts["data"] = opts["d"] = x}
   parser.on('--dataop op') {|x| 
-    if /f/.match?(x.downcase)
-      opts["dataop"]=:YAML_TO_MD                               
-    else
+    if /^f/.match?(x.downcase)
       opts["dataop"]=:FILE_INCLUDE
+    else
+      opts["dataop"]=:YAML_TO_MD                               
     end
   }
 }
+
 if opts["debug"]
   mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
 elsif opts["verbose"]
@@ -49,6 +51,12 @@ unless opts["output"]
   exit(mes.ec("EXIT_CODE_ARGV_ERROR"))
 end
 
+opts["data"]=File.expand_path(opts["data"])
+opts["output"]=File.expand_path(opts["output"])
+opts["yaml"]=File.expand_path(opts["yaml"]) if opts["yaml"]
+
+pp opts
+
 rootsettingfname=ARGV[0]
 
 #opts["data"]=
@@ -56,7 +64,13 @@ rootsettingfname=ARGV[0]
 
 x=Mdextab::Makemdtab.create(opts, opts["fnameVariable"], opts["fnameStatic"], rootsettingfname, mes)
 
-x.makeMd2()
+if opts["yaml"]
+  auxhs = Filex::Filex.checkAndLoadYamlfile(opts["yaml"], mes)
+else
+  auxhs={}
+end
+
+x.makeMd2(opts["template"], auxhs)
 x.postProcess
-puts "# makemdtab End #"
+mes.outputInfo("# makemdtab End #")
 exit(mes.ec("EXIT_CODE_NORMAL_EXIT"))
