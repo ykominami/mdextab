@@ -474,7 +474,7 @@ module Mdextab
           @env.star = false       
           tableTdAppendInElse('*'+token.opt[:content])
         else
-          @mes.outputFatal("In :IN_TD unknown tag=(#{token.kind}) in processOneLine")          
+          @mes.outputFatal("In :IN_TD unknown tag=(#{token.kind}) in processOneLine")
           exit(@mes.ec("EXIT_CODE_UNKNOWN"))
           #
         end
