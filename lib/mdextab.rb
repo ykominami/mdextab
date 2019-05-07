@@ -1,6 +1,8 @@
-require "mdextab/version"
+module Mdextab
+  class Error < StandardError; end
 
-require 'messagex/loggerx'
+  class Mdextab
+require "mdextab/version"
 require 'mdextab/token'
 require 'mdextab/table'
 require 'mdextab/tbody'
@@ -9,16 +11,14 @@ require 'mdextab/th'
 require 'mdextab/token'
 require 'mdextab/tr'
 require 'mdextab/makemdtab'
+require 'messagex/loggerx'
 require 'filex'
 
 require 'byebug'
 
-module Mdextab
-  class Error < StandardError; end
-
-  class Mdextab
     def initialize(opt, fname, o_fname, mes=nil)
-      @fname = fname
+      @fname=fname
+      @o_fname=o_fname
 
       @envStruct = Struct.new(:table, :star, :curState)
       @env = nil
@@ -36,24 +36,16 @@ module Mdextab
       @mes.addExitCode("EXIT_CODE_UNKNOWN")
       @mes.addExitCode("EXIT_CODE_ILLEAGAL_STATE")
 
-      Filex.setup(@mes)
+      Filex::Filex.setup(@mes)
 
       unless File.exist?(fname)
         @mes.outputFatal("Can't find #{fname}")
         exit(@mes.ec("EXIT_CODE_CANNOT_FIND_FILE"))
       end
 
-      begin
-        @output = File.open(o_fname, 'w')
-      rescue IOError=> ex
-        mesg2="Can't write #{o_fname}"
-        @mes.outputFatal(mesg2)
-        exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
-      rescue SystemCallError => ex
-        mesg2="Can't write #{o_fname}"
-        @mes.outputFatal(mesg2)
-        exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
-      end
+      @mes.excFileWrite(o_fname){
+        @output=File.open(o_fname, 'w')
+      }
 
       @state = {
         START: {TABLE_START: :IN_TABLE , ELSE: :OUT_OF_TABLE, STAR_START: :START, STAR_END: :START},
@@ -155,7 +147,7 @@ module Mdextab
     def parse(hs)
       @env = getNewEnv()
       lineno=0
-      Filex::checkAndExpandFileLines(@fname, hs, @mes).each{ |l|
+      Filex::Filex::checkAndExpandFileLines(@fname, hs, @mes).each{ |l|
         lineno += 1
         token = getToken(l, lineno)
         kind = token.kind
@@ -185,8 +177,7 @@ module Mdextab
     end
 
     def parse2(yamlfname)
-      str=Filex.checkAndLoadYamlfile(yamlfname, @mes)
-      hs=Filex.loadYaml(str, @mes)
+      hs=Filex::Filex.checkAndLoadYamlfile(yamlfname, @mes)
       parse(hs)
     end
 
@@ -279,7 +270,9 @@ module Mdextab
         end
       else
         @mes.outputDebug( "1 - processTableEnd @env.curState=#{@env.curState} @return_from_nested_env~#{@return_from_nested_env}")
-        @output.puts(@env.table.end)
+        @mes.excFileWrite(@o_fname){
+          @output.puts(@env.table.end)
+        }
       end
     end
 
@@ -288,10 +281,14 @@ module Mdextab
         if str.match?(/^\s*$/)
           @mes.outputDebug("InElse do nothing")
         else
-          @output.puts(str)
+          @mes.excFileWrite(@o_fname){
+            @output.puts(str)
+          }
         end
       else
-        @output.puts(str)
+        @mes.excFileWrite(@o_fname){
+          @output.puts(str)
+        }
       end        
     end
 
@@ -520,7 +517,9 @@ module Mdextab
     end
 
     def end
-      @output.close
+      @mes.excFileClose(@o_fname){
+        @output.close
+      }
     end
 
     def getNewEnv(state=:START)
