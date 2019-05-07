@@ -33,19 +33,9 @@ module Mdextab
       @mes.addExitCode("EXIT_CODE_ILLEGAL_DATAOP")
       Filex::Filex.setup(@mes)
 
-      begin
-        @output = File.open(@outputfname, 'w')
-      rescue IOError => ex
-        mes2 = "Can't write #{@outputfname} 1"
-        @mes.outputFatal(mes2)
-        @mes.outputException(ex)
-        exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
-      rescue SystemCallError => ex
-        mes2 = "Can't write #{@outputfname} 2"
-        @mes.outputFatal(mes2)
-        @mes.outputException(ex)
-        exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
-      end
+      @output=@mes.excFileWrite(@outputfname){
+        File.open(@outputfname, 'w')
+      }
     end
 
     def self.create(opts, fnameVariable, fnameStatic, rootSettingfile, mes)
@@ -77,13 +67,19 @@ module Mdextab
           @mes.outputFatal("Not specified templatefile")
           exit(@mes.ec("EXIT_CODE_NOT_SPECIFIED_FILE"))
         end
-        
+=begin
+p "@datayamlfname=#{@datayamlfname}"
+p "templatefile=#{templatefile}"
+p "objx=#{objx}"
+=end
         array=loadYamlToMd(@datayamlfname, templatefile, objx)
       else
         array=[]
       end
       array.map{|x|
-        @output.puts(x)
+        @mes.excFileWrite(@outputfname){
+          @output.puts(x)
+        }
       }
     end
 
@@ -114,8 +110,6 @@ module Mdextab
       @mes.outputDebug("objx=#{objx}")
       
       objy=Filex::Filex.checkAndExpandYamlfile(datayamlfname, objx, @mes)
-p objy.class
-p objy
       @mes.outputDebug("objy=#{objy}")
       @mes.outputDebug("templatefile=#{templatefile}")
       
@@ -128,11 +122,10 @@ p objy
       array
     end
 
-    def load2(dataop, datayamlfname, templatefile, auxhs={})
-    end
-
     def postProcess
-      @output.close if @output
+      @mes.excFileClose(@outputfname){
+        @output.close if @output
+      }
       @output = nil
     end
   end
