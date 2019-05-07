@@ -77,7 +77,6 @@ module Mdextab
           @mes.outputFatal("Not specified templatefile")
           exit(@mes.ec("EXIT_CODE_NOT_SPECIFIED_FILE"))
         end
-        
         array=loadYamlToMd(@datayamlfname, templatefile, objx)
       else
         array=[]
@@ -114,8 +113,6 @@ module Mdextab
       @mes.outputDebug("objx=#{objx}")
       
       objy=Filex::Filex.checkAndExpandYamlfile(datayamlfname, objx, @mes)
-p objy.class
-p objy
       @mes.outputDebug("objy=#{objy}")
       @mes.outputDebug("templatefile=#{templatefile}")
       
