@@ -44,9 +44,6 @@ module Mdextab
       end
 
       dir=File.dirname(o_fname)
-puts "============="
-p "dir=#{dir}"
-puts "============="
       if dir != "."
         excMakeDirectory(dir){
          FileUtils.mkdir_p(dir)
@@ -55,18 +52,7 @@ puts "============="
       @mes.excFileWrite(o_fname){
         @output = File.open(o_fname, 'w')
       }
-=begin
-      begin
-      rescue IOError=> ex
-        mesg2="Can't write #{o_fname}"
-        @mes.outputFatal(mesg2)
-        exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
-      rescue SystemCallError => ex
-        mesg2="Can't write #{o_fname}"
-        @mes.outputFatal(mesg2)
-        exit(@mes.ec("EXIT_CODE_CANNOT_WRITE_FILE"))
-      end
-=end
+
       @state = {
         START: {TABLE_START: :IN_TABLE , ELSE: :OUT_OF_TABLE, STAR_START: :START, STAR_END: :START},
         OUT_OF_TABLE: {TABLE_START: :IN_TABLE , ELSE: :OUT_OF_TABLE, STAR_START: :OUT_OF_TABLE, STAR_END: :OUT_OF_TABLE, TD: :OUT_OF_TABLE },
