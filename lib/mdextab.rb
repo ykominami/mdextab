@@ -43,8 +43,14 @@ require 'byebug'
         exit(@mes.ec("EXIT_CODE_CANNOT_FIND_FILE"))
       end
 
+      dir=File.dirname(o_fname)
+      if dir != "."
+        excMakeDirectory(dir){
+         FileUtils.mkdir_p(dir)
+        }
+      end
       @mes.excFileWrite(o_fname){
-        @output=File.open(o_fname, 'w')
+        @output = File.open(o_fname, 'w')
       }
 
       @state = {
@@ -471,7 +477,7 @@ require 'byebug'
           @env.star = false       
           tableTdAppendInElse('*'+token.opt[:content])
         else
-          @mes.outputFatal("In :IN_TD unknown tag=(#{token.kind}) in processOneLine")          
+          @mes.outputFatal("In :IN_TD unknown tag=(#{token.kind}) in processOneLine")
           exit(@mes.ec("EXIT_CODE_UNKNOWN"))
           #
         end

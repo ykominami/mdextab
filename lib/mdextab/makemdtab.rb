@@ -67,11 +67,7 @@ module Mdextab
           @mes.outputFatal("Not specified templatefile")
           exit(@mes.ec("EXIT_CODE_NOT_SPECIFIED_FILE"))
         end
-=begin
-p "@datayamlfname=#{@datayamlfname}"
-p "templatefile=#{templatefile}"
-p "objx=#{objx}"
-=end
+        
         array=loadYamlToMd(@datayamlfname, templatefile, objx)
       else
         array=[]
