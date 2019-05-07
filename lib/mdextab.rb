@@ -45,7 +45,7 @@ require 'byebug'
 
       dir=File.dirname(o_fname)
       if dir != "."
-        excMakeDirectory(dir){
+        @mes.excMakeDirectory(dir){
          FileUtils.mkdir_p(dir)
         }
       end
