@@ -45,19 +45,19 @@ module Mdextab
         mes.outputFatal("Can't find #{opts["output"]}")
         exit(mes.ec("EXIT_CODE_CANNOT_FIND_FILE"))
       end
-      objByYaml = Filex::Filex.checkAndLoadYamlfile(rootSettingfile, mes)
+      objByYaml = Filex::Filex.check_and_load_yamlfile(rootSettingfile, mes)
 
-      strVariable=Filex::Filex.checkAndLoadFile(fnameVariable, mes) if fnameVariable
+      strVariable=Filex::Filex.check_and_load_file(fnameVariable, mes) if fnameVariable
       strStatic=["<% " , Filex::Filex.checkAndExpandFile(fnameStatic, objByYaml, mes), "%>"].join("\n") if fnameStatic
       
        Makemdtab.new(opts, strVariable, strStatic, objByYaml, mes)
     end
 
-    def makeMd2(templatefile=nil, auxhs={})
+    def makeMd2(root_dir, templatefile=nil, auxhs={})
       objx=@objByYaml.merge(auxhs)
       case @dataop
       when :FILE_INCLUDE
-        array=loadFileInclude(@datayamlfname, objx)
+        array=loadFileInclude(root_dir, @datayamlfname, objx)
       when :YAML_TO_MD
         unless templatefile
           @mes.outputFatal("Not specified templatefile")
@@ -68,7 +68,7 @@ module Mdextab
           exit(@mes.ec("EXIT_CODE_NOT_SPECIFIED_FILE"))
         end
         
-        array=loadYamlToMd(@datayamlfname, templatefile, objx)
+        array=load_yaml_to_md(@datayamlfname, templatefile, objx)
       else
         array=[]
       end
@@ -79,41 +79,41 @@ module Mdextab
       }
     end
 
-    def loadFileInclude(datayamlfname, objx)
+    def loadFileInclude(root_dir, datayamlfname, objx)
       mdfname=datayamlfname
-      objy={"parentDir" => '%q!' + Dir.pwd + '!' }
+      objy={"parentDir" => '%q!' + root_dir + '!' }
       erubyExanpdedStr=""
       if @erubyVariableStr 
         if @erubyVariableStr.empty?
           erubyExanpdedStr=""
         else
-          erubyExanpdedStr=["<% ", Filex::Filex.expandStr(@erubyVariableStr, objy, @mes), " %>"].join("\n")
+          erubyExanpdedStr=["<% ", Filex::Filex.expand_str(@erubyVariableStr, objy, @mes), " %>"].join("\n")
         end
       end
-      mbstr=Filex::Filex.checkAndLoadFile(mdfname, @mes)
+      mbstr=Filex::Filex.check_and_load_file(mdfname, @mes)
       dx = [erubyExanpdedStr, @erubyStaticStr, mbstr].join("\n")
       if dx.strip.empty?
         puts "empty mdfname=#{mdfname}"
       else
-        array=[Filex::Filex.expandStr(dx, objx, @mes, {"mdfname" => mdfname})]
+        array=[Filex::Filex.expand_str(dx, objx, @mes, {"mdfname" => mdfname})]
       end
 
       array
     end
      
-    def loadYamlToMd(datayamlfname, templatefile, objx)
+    def load_yaml_to_md(datayamlfname, templatefile, objx)
       @mes.outputDebug("datayamlfname=#{datayamlfname}")
       @mes.outputDebug("objx=#{objx}")
       
-      objy=Filex::Filex.checkAndExpandYamlfile(datayamlfname, objx, @mes)
+      objy=Filex::Filex.check_and_expand_yamlfile(datayamlfname, objx, @mes)
       @mes.outputDebug("objy=#{objy}")
       @mes.outputDebug("templatefile=#{templatefile}")
       
-      erubystr=Filex::Filex.checkAndLoadFile(templatefile, @mes)
+      erubystr=Filex::Filex.check_and_load_file(templatefile, @mes)
       @mes.outputDebug("erubystr=#{erubystr}")
       dx = [@erubyStaticStr, erubystr].join("\n")
       @mes.outputDebug("dx=#{dx}")
-      array=[Filex::Filex.expandStr(dx, objy, @mes, {"datayamlfname" => datayamlfname , "templatefile" => templatefile})]
+      array=[Filex::Filex.expand_str(dx, objy, @mes, {"datayamlfname" => datayamlfname , "templatefile" => templatefile})]
 
       array
     end

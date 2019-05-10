@@ -153,7 +153,7 @@ require 'byebug'
     def parse(hs)
       @env = getNewEnv()
       lineno=0
-      Filex::Filex::checkAndExpandFileLines(@fname, hs, @mes).each{ |l|
+      Filex::Filex::check_and_expand_file_lines(@fname, hs, @mes).each{ |l|
         lineno += 1
         token = getToken(l, lineno)
         kind = token.kind
@@ -183,7 +183,7 @@ require 'byebug'
     end
 
     def parse2(yamlfname)
-      hs=Filex::Filex.checkAndLoadYamlfile(yamlfname, @mes)
+      hs=Filex::Filex.check_and_load_yamlfile(yamlfname, @mes)
       parse(hs)
     end
 
