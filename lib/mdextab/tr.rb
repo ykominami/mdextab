@@ -10,7 +10,7 @@ module Mdextab
     end
 
     def to_s
-      ["<tr>", @array.map{|x| x.to_s} , "</tr>"].join("\n")
+      ["<tr>", @array.map(&:to_s), "</tr>"].join("\n")
     end
   end
 end

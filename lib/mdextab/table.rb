@@ -1,4 +1,4 @@
-require 'forwardable'
+require "forwardable"
 
 module Mdextab
   class Table
@@ -32,20 +32,19 @@ module Mdextab
     def to_s(debug=false)
       if @attr
         if debug
-          str_1 = %Q!<table #{@attr} lineno:#{@lineno}>! 
+          str_1 = %Q(<table #{@attr} lineno:#{@lineno}>)
         else
-          str_1 = %Q!<table #{@attr}>! 
+          str_1 = %Q(<table #{@attr}>)
         end
       else
         if debug
-          str_1 = %Q!<table  lineno:#{@lineno}>!
+          str_1 = %Q(<table  lineno:#{@lineno}>)
         else
-          str_1 = %Q!<table>!
+          str_1 = %Q(<table>)
         end
       end
 
       [str_1, @tbody.to_s, "</table>"].join("\n")
     end
-
   end
 end

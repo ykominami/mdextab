@@ -12,21 +12,21 @@ module Mdextab
           if @content.match?(/^\s*$/)
             @content = content.to_s
           else
-            @content+=content.to_s
+            @content += content.to_s
           end
         else
-          @content=content.to_s
+          @content = content.to_s
         end
       else
-        @content = [@content , content].join("\n") if content
+        @content = [@content, content].join("\n") if content
       end
     end
 
     def to_s
-      if @attr != nil
-        %Q!<th #{@attr}>#{@content}</th>!
+      if !@attr.nil?
+        %Q(<th #{@attr}>#{@content}</th>)
       else
-        %Q!<th>#{@content}</th>!
+        %Q(<th>#{@content}</th>)
       end
     end
   end

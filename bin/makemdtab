@@ -1,42 +1,42 @@
 #!/usr/bin/env ruby
-# -*- coding: utf-8 -*-
-require 'bundler/setup'
-require 'mdextab'
-require 'messagex'
 
-require 'simpleoptparse'
+require "bundler/setup"
+require "mdextab"
+require "messagex"
+
+require "simpleoptparse"
 
 opts = {}
 banner = "Usage: bundle exec ruby bin/makemdtab [--debug|--verbose] (-o|--output) outfname (-d|--data) datafname  yamlfname --dataop (fileinclude|yamltomd) -es erubystatic -ev erubyvariable *]"
-if ARGV.size == 0
+if ARGV.empty?
   puts(banner)
   exit(@mes.ec("EXIT_CODE_ARGV"))
 end
 
-Simpleoptparse::Simpleoptparse.parse(ARGV , opts , banner , Mdextab::VERSION , nil){ |parser|
-  parser.on('--debug'  ) {|x| opts["debug"] = true}
-  parser.on('--verbose'  ) {|x| opts["verbose"] = true}
-  parser.on('--es path'  ) {|x| opts["fnameStatic"] = x}
-  parser.on('--ev path'  ) {|x| opts["fnameVariable"] = x}
-  parser.on('-t path', '--template'  ) {|x| opts["template"] = opts["t"] = x}
-  parser.on('-y path', '--yaml'  ) {|x| opts["yaml"] = opts["y"] = x}
-  parser.on('-o path', '--output'  ) {|x| opts["output"] = opts["o"] = x}
-  parser.on('-d path', '--data'  ) {|x| opts["data"] = opts["d"] = x}
-  parser.on('--dataop op') {|x| 
+Simpleoptparse::Simpleoptparse.parse(ARGV, opts, banner, Mdextab::VERSION, nil) {|parser|
+  parser.on("--debug") {|_x| opts["debug"] = true }
+  parser.on("--verbose") {|_x| opts["verbose"] = true }
+  parser.on("--es path") {|x| opts["fnameStatic"] = x }
+  parser.on("--ev path") {|x| opts["fnameVariable"] = x }
+  parser.on("-t path", "--template") {|x| opts["template"] = opts["t"] = x }
+  parser.on("-y path", "--yaml") {|x| opts["yaml"] = opts["y"] = x }
+  parser.on("-o path", "--output") {|x| opts["output"] = opts["o"] = x }
+  parser.on("-d path", "--data") {|x| opts["data"] = opts["d"] = x }
+  parser.on("--dataop op") {|x|
     if /^f/.match?(x.downcase)
-      opts["dataop"]=:FILE_INCLUDE
+      opts["dataop"] = :FILE_INCLUDE
     else
-      opts["dataop"]=:YAML_TO_MD                               
+      opts["dataop"] = :YAML_TO_MD
     end
   }
 }
 
 if opts["debug"]
-  mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
+  mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
 elsif opts["verbose"]
-  mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :verbose)
+  mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :verbose)
 else
-  mes=Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
+  mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
 end
 
 unless opts["data"]
@@ -47,27 +47,27 @@ end
 
 unless opts["output"]
   puts("Not specified -oputut")
-  puts(b ewwanner)
+  puts(b(ewwanner)))
   exit(mes.ec("EXIT_CODE_ARGV_ERROR"))
 end
 
-opts["data"]=File.expand_path(opts["data"])
-opts["output"]=File.expand_path(opts["output"])
-opts["yaml"]=File.expand_path(opts["yaml"]) if opts["yaml"]
+opts["data"] = File.expand_path(opts["data"])
+opts["output"] = File.expand_path(opts["output"])
+opts["yaml"] = File.expand_path(opts["yaml"]) if opts["yaml"]
 
 pp opts
 
-rootsettingfname=ARGV[0]
+rootsettingfname = ARGV[0]
 
-#opts["data"]=
-#opts["output"]=
+# opts["data"]=
+# opts["output"]=
 
-x=Mdextab::Makemdtab.create(opts, opts["fnameVariable"], opts["fnameStatic"], rootsettingfname, mes)
+x = Mdextab::Makemdtab.create(opts, opts["fnameVariable"], opts["fnameStatic"], rootsettingfname, mes)
 
 if opts["yaml"]
   auxhs = Filex::Filex.checkAndLoadYamlfile(opts["yaml"], mes)
 else
-  auxhs={}
+  auxhs = {}
 end
 
 x.makeMd2(opts["template"], auxhs)

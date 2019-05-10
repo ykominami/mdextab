@@ -1,21 +1,21 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
-require 'mdextab'
+require "bundler/setup"
+require "mdextab"
 
-require 'simpleoptparse'
+require "simpleoptparse"
 
-opts = {  }
+opts = {}
 banner = "Usage: bundle exec ruby bin/mdextab in_md_fname out_md_fname settng_yaml auxiliary_setting_yaml"
 
-Simpleoptparse::Simpleoptparse.parse(ARGV , opts , banner , Mdextab::VERSION , nil){|parser|
-    parser.on('-d', '--debug'  ) {|x| opts["debug"] = true }
+Simpleoptparse::Simpleoptparse.parse(ARGV, opts, banner, Mdextab::VERSION, nil) {|parser|
+  parser.on("-d", "--debug") {|_x| opts["debug"] = true }
 }
 
 fname = ARGV[0]
 oFname = ARGV[1]
 yamlFname = ARGV[2]
 opts["yamlfname"] = yamlfname
-m = Mdextab::Mdextab.new(opts,fname,oFname)
+m = Mdextab::Mdextab.new(opts, fname, oFname)
 m.parse2(yamlFname)
 m.end

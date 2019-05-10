@@ -22,12 +22,12 @@ module Mdextab
     end
 
     def add_td(lineno, content, nth, attr=nil, condense)
-      @mes.outputDebug( "content=#{content}|nth=#{nth}|attr=#{attr}" )
+      @mes.outputDebug("content=#{content}|nth=#{nth}|attr=#{attr}")
       if nth == 1
         @tr = Tr.new(lineno)
         @array << @tr
       end
-      @td = Td.new(lineno,attr)
+      @td = Td.new(lineno, attr)
       @td.add(content, condense)
       @tr.add(@td)
     end
@@ -49,7 +49,7 @@ module Mdextab
     end
 
     def to_s
-      ["<tbody>" , @array.map{|x| x.to_s} , "</tbody>"].join("\n")
+      ["<tbody>", @array.map(&:to_s), "</tbody>"].join("\n")
     end
   end
 end
