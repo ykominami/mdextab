@@ -8,14 +8,14 @@ require "simpleoptparse"
 opts = {}
 banner = "Usage: bundle exec ruby bin/mdextab in_md_fname out_md_fname settng_yaml auxiliary_setting_yaml"
 
-Simpleoptparse::Simpleoptparse.parse(ARGV, opts, banner, Mdextab::VERSION, nil) {|parser|
+Simpleoptparse::Simpleoptparse.parse(ARGV, opts, banner, Mdextab::VERSION, nil) do |parser|
   parser.on("-d", "--debug") {|_x| opts["debug"] = true }
-}
+end
 
 fname = ARGV[0]
-oFname = ARGV[1]
-yamlFname = ARGV[2]
-opts["yamlfname"] = yamlfname
-m = Mdextab::Mdextab.new(opts, fname, oFname)
-m.parse2(yamlFname)
+o_fname = ARGV[1]
+yaml_fname = ARGV[2]
+opts["yaml_fname"] = yaml_fname
+m = Mdextab::Mdextab.new(opts, fname, o_fname)
+m.parse2(yaml_fname)
 m.end
