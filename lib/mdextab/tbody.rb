@@ -11,7 +11,7 @@ module Mdextab
       @mes = mes
     end
 
-    def add_th(lineno, content, nth, attr=nil, condense)
+    def add_th(lineno, content, nth, attr, condense)
       if nth == 1
         @tr = Tr.new(lineno)
         @array << @tr
@@ -21,7 +21,7 @@ module Mdextab
       @tr.add(@th)
     end
 
-    def add_td(lineno, content, nth, attr=nil, condense)
+    def add_td(lineno, content, nth, attr, condense)
       @mes.outputDebug("content=#{content}|nth=#{nth}|attr=#{attr}")
       if nth == 1
         @tr = Tr.new(lineno)
@@ -32,11 +32,11 @@ module Mdextab
       @tr.add(@td)
     end
 
-    def tdAppend(content, condense)
+    def td_append(content, condense)
       @td.add(content, condense)
     end
 
-    def thAppend(content, condense)
+    def th_append(content, condense)
       @th.add(content, condense)
     end
 
