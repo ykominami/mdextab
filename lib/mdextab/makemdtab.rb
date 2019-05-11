@@ -4,17 +4,17 @@ module Mdextab
   require "filex"
 
   class Makemdtab
-    def initialize(opts, erubyVariableStr, erubyStaticStr, objByYaml, mes=nil)
+    def initialize(opts, eruby_variable_str, eruby_static_str, obj_by_yaml, mes=nil)
       @yamlfiles = {}
       @str_yamlfiles = {}
       @str_mdfiles = {}
       @str_erubyfiles = {}
       @dataop = opts["dataop"]
       @datayamlfname = opts["data"]
-      @erubyVariableStr = erubyVariableStr
-      @erubyStaticStr = erubyStaticStr
+      @eruby_variable_str = eruby_variable_str
+      @eruby_static_str = eruby_static_str
       @outputfname = opts["output"]
-      @objByYaml = objByYaml
+      @obj_by_yaml = obj_by_yaml
 
       @exit_cannot_find_file = 1
       @exit_cannot_write_file = 2
@@ -32,31 +32,29 @@ module Mdextab
       @mes.addExitCode("EXIT_CODE_ILLEGAL_DATAOP")
       Filex::Filex.setup(@mes)
 
-      @output = @mes.excFileWrite(@outputfname) {
-        File.open(@outputfname, "w")
-      }
+      @output = @mes.excFileWrite(@outputfname) { File.open(@outputfname, "w") }
     end
 
-    def self.create(opts, fnameVariable, fnameStatic, rootSettingfile, mes)
+    def self.create(opts, fname_variable, fname_static, root_settingfile, mes)
       Filex::Filex.setup(mes)
 
       unless File.exist?(opts["output"])
         mes.outputFatal("Can't find #{opts['output']}")
         exit(mes.ec("EXIT_CODE_CANNOT_FIND_FILE"))
       end
-      objByYaml = Filex::Filex.check_and_load_yamlfile(rootSettingfile, mes)
+      obj_by_yaml = Filex::Filex.check_and_load_yamlfile(root_settingfile, mes)
 
-      strVariable = Filex::Filex.check_and_load_file(fnameVariable, mes) if fnameVariable
-      strStatic = ["<% ", Filex::Filex.checkAndExpandFile(fnameStatic, objByYaml, mes), "%>"].join("\n") if fnameStatic
+      str_variable = Filex::Filex.check_and_load_file(fname_variable, mes) if fname_variable
+      str_static = ["<% ", Filex::Filex.check_and_expand_file(fname_static, obj_by_yaml, mes), "%>"].join("\n") if fname_static
 
-      Makemdtab.new(opts, strVariable, strStatic, objByYaml, mes)
+      Makemdtab.new(opts, str_variable, str_static, obj_by_yaml, mes)
     end
 
-    def makeMd2(root_dir, templatefile=nil, auxhs={})
-      objx = @objByYaml.merge(auxhs)
+    def make_md2(root_dir, templatefile=nil, auxhs={})
+      objx = @obj_by_yaml.merge(auxhs)
       case @dataop
       when :FILE_INCLUDE
-        array = loadFileInclude(root_dir, @datayamlfname, objx)
+        array = load_file_include(root_dir, @datayamlfname, objx)
       when :YAML_TO_MD
         unless templatefile
           @mes.outputFatal("Not specified templatefile")
@@ -71,26 +69,22 @@ module Mdextab
       else
         array = []
       end
-      array.map {|x|
-        @mes.excFileWrite(@outputfname) {
-          @output.puts(x)
-        }
-      }
+      array.map {|x| @mes.excFileWrite(@outputfname) { @output.puts(x) } }
     end
 
-    def loadFileInclude(root_dir, datayamlfname, objx)
+    def load_file_include(root_dir, datayamlfname, objx)
       mdfname = datayamlfname
       objy = { "parentDir" => "%q!" + root_dir + "!" }
-      erubyExanpdedStr = ""
-      if @erubyVariableStr
-        if @erubyVariableStr.empty?
-          erubyExanpdedStr = ""
+      eruby_exanpded_str = ""
+      if @eruby_variable_str
+        if @eruby_variable_str.empty?
+          eruby_exanpded_str = ""
         else
-          erubyExanpdedStr = ["<% ", Filex::Filex.expand_str(@erubyVariableStr, objy, @mes), " %>"].join("\n")
+          eruby_exanpded_str = ["<% ", Filex::Filex.expand_str(@eruby_variable_str, objy, @mes), " %>"].join("\n")
         end
       end
       mbstr = Filex::Filex.check_and_load_file(mdfname, @mes)
-      dx = [erubyExanpdedStr, @erubyStaticStr, mbstr].join("\n")
+      dx = [eruby_exanpded_str, @eruby_static_str, mbstr].join("\n")
       if dx.strip.empty?
         puts "empty mdfname=#{mdfname}"
       else
@@ -110,17 +104,15 @@ module Mdextab
 
       erubystr = Filex::Filex.check_and_load_file(templatefile, @mes)
       @mes.outputDebug("erubystr=#{erubystr}")
-      dx = [@erubyStaticStr, erubystr].join("\n")
+      dx = [@eruby_static_str, erubystr].join("\n")
       @mes.outputDebug("dx=#{dx}")
       array = [Filex::Filex.expand_str(dx, objy, @mes, { "datayamlfname" => datayamlfname, "templatefile" => templatefile })]
 
       array
     end
 
-    def postProcess
-      @mes.excFileClose(@outputfname) {
-        @output&.close
-      }
+    def post_process
+      @mes.excFileClose(@outputfname) { @output&.close }
       @output = nil
     end
   end
