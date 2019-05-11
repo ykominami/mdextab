@@ -17,16 +17,16 @@ module Mdextab
         else
           @content = content.to_s
         end
-      else
-        @content = [@content, content].join("\n") if content
+      elsif content
+        @content = [@content, content].join("\n")
       end
     end
 
     def to_s
-      if !@attr.nil?
-        %Q(<th #{@attr}>#{@content}</th>)
-      else
+      if @attr.nil?
         %Q(<th>#{@content}</th>)
+      else
+        %Q(<th #{@attr}>#{@content}</th>)
       end
     end
   end
