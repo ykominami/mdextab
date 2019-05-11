@@ -3,7 +3,7 @@ require "forwardable"
 module Mdextab
   class Table
     extend Forwardable
-    def_delegators :@tbody, :add_th, :add_td, :tdAppend, :thAppend, :add
+    def_delegators :@tbody, :add_th, :add_td, :td_append, :th_append, :add
     attr_reader :lineno, :tbody
 
     def initialize(lineno, mes, attr=nil)
@@ -32,19 +32,17 @@ module Mdextab
     def to_s(debug=false)
       if @attr
         if debug
-          str_1 = %Q(<table #{@attr} lineno:#{@lineno}>)
+          str = %Q(<table #{@attr} lineno:#{@lineno}>)
         else
-          str_1 = %Q(<table #{@attr}>)
+          str = %Q(<table #{@attr}>)
         end
+      elsif debug
+        str = %Q(<table  lineno:#{@lineno}>)
       else
-        if debug
-          str_1 = %Q(<table  lineno:#{@lineno}>)
-        else
-          str_1 = %Q(<table>)
-        end
+        str = %Q(<table>)
       end
 
-      [str_1, @tbody.to_s, "</table>"].join("\n")
+      [str, @tbody.to_s, "</table>"].join("\n")
     end
   end
 end
