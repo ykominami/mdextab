@@ -13,7 +13,7 @@ if ARGV.empty?
   exit(@mes.ec("EXIT_CODE_ARGV"))
 end
 
-Simpleoptparse::Simpleoptparse.parse(ARGV, opts, banner, Mdextab::VERSION, nil) {|parser|
+Simpleoptparse::Simpleoptparse.parse(ARGV, opts, banner, Mdextab::VERSION, nil) do |parser|
   parser.on("--debug") {|_x| opts["debug"] = true }
   parser.on("--verbose") {|_x| opts["verbose"] = true }
   parser.on("--es path") {|x| opts["fnameStatic"] = x }
@@ -22,14 +22,14 @@ Simpleoptparse::Simpleoptparse.parse(ARGV, opts, banner, Mdextab::VERSION, nil) 
   parser.on("-y path", "--yaml") {|x| opts["yaml"] = opts["y"] = x }
   parser.on("-o path", "--output") {|x| opts["output"] = opts["o"] = x }
   parser.on("-d path", "--data") {|x| opts["data"] = opts["d"] = x }
-  parser.on("--dataop op") {|x|
+  parser.on("--dataop op") do |x|
     if /^f/.match?(x.downcase)
       opts["dataop"] = :FILE_INCLUDE
     else
       opts["dataop"] = :YAML_TO_MD
     end
-  }
-}
+  end
+end
 
 if opts["debug"]
   mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
@@ -47,15 +47,13 @@ end
 
 unless opts["output"]
   puts("Not specified -oputut")
-  puts(b(ewwanner)))
+  puts(banner)
   exit(mes.ec("EXIT_CODE_ARGV_ERROR"))
 end
 
 opts["data"] = File.expand_path(opts["data"])
 opts["output"] = File.expand_path(opts["output"])
 opts["yaml"] = File.expand_path(opts["yaml"]) if opts["yaml"]
-
-pp opts
 
 rootsettingfname = ARGV[0]
 
