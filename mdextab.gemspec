@@ -45,4 +45,6 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency "erubis"
   spec.add_runtime_dependency "messagex"
   spec.add_runtime_dependency "filex"
+  spec.add_development_dependency "rubocop"
+  spec.add_development_dependency "rubocop-performance"
 end
