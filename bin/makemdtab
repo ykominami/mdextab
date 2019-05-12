@@ -55,8 +55,6 @@ opts["data"] = File.expand_path(opts["data"])
 opts["output"] = File.expand_path(opts["output"])
 opts["yaml"] = File.expand_path(opts["yaml"]) if opts["yaml"]
 
-rootsettingfname = ARGV[0]
-
 if opts["yaml"]
   auxhs = Filex::Filex.checkAndLoadYamlfile(opts["yaml"], mes)
 else
