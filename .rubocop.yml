@@ -3,18 +3,41 @@ inherit_from: .rubocop_todo.yml
 AllCops:
   TargetRubyVersion: 2.5
   DisplayCopNames: true
+#
+  StyleGuideBaseURL: https://github.com/fortissimo1997/ruby-style-guide/blob/japanese/README.ja.md
+#
   Exclude:
     - "Rakefile"
     - "*.gemspec"
     - "vendor/**/*"
-    - "lib/**/*.tab.rb"
-    - "lib/tecsgen.rb"
-    - "lib/tecsgen/**/*.rb"
-    - "lib/tcflow.rb"
-    - "lib/tecsflow.rb"
-    - "lib/tecsflow/**/*.rb"
-    - "glade/*.rb"
-    - "spec/*.rb"
+    - "bin/console"
+    - "bin/setup"
+    - "bin/x.sh"
+    - "bin/x.rb"
+    - "bin"
+    - "bin/erubis"
+    - "bin/md2site"
+    - "bin/ldiff"
+    - "bin/bundle"
+    - "bin/rake"
+    - "bin/htmldiff"
+    - "bin/ruby-parse"
+    - "bin/setup"
+    - "bin/simpleoptparse"
+    - "bin/ruby-rewrite"
+    - "bin/nokogiri"
+    - "bin/mdextab"
+    - "bin/rspec"
+    - "bin/commands"
+    - "bin/rubocop"
+    - "bin/byebug"
+    - "_tmp/*"
+    - "_tmp/*.*"
+    - "_tmp/*/*"
+    - "_tmp/*/*.*"
+    - "_tmp/*/*/*"
+    - "_tmp/*/*/*.*"
+
 
 Layout/ExtraSpacing:
   AllowForAlignment: true
