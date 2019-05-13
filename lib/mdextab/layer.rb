@@ -13,7 +13,7 @@ module Mdextab
     end
 
     def cur_state=(val)
-      raise if val.class != Symbol
+      # raise if val.class != Symbol
       @cur_layer.cur_state = val
     end
 
@@ -42,8 +42,7 @@ module Mdextab
       new_layer = @layer_struct.new(nil, nil, nil, fname, lineno)
       @layers << new_layer
       @size = @layers.size
-      puts "state.class=#{state.class}"
-      raise if state.class != Symbol
+      # raise if state.class != Symbol
       new_layer.cur_state = state
       if @cur_layer
         new_layer.star = @cur_layer.star
@@ -71,19 +70,16 @@ module Mdextab
       if table.tbody.nil?
         table.add_tbody(lineno)
       end
-      @mes.outputDebug("B process_nested_table_start 1 @cur_layer.table=#{@cur_layer.table.object_id} token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} cur_state=#{@cur_layer.cur_state}")
+      @mes.output_debug("B process_nested_table_start 1 @cur_layer.table=#{@cur_layer.table.object_id} token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} cur_state=#{@cur_layer.cur_state}")
       add_layer(fname, lineno, :OUT_OF_TABLE)
       @cur_layer.table = Table.new(token.opt[:lineno], @mes, token.opt[:attr])
-      @mes.outputDebug("process_nested_table_start 3 token.kind=#{token.kind} cur_state=#{@cur_layer.cur_state}")
+      @mes.output_debug("process_nested_table_start 3 token.kind=#{token.kind} cur_state=#{@cur_layer.cur_state}")
     end
 
     def process_table_end(token)
       prev_layer = peek_prev_layer
       if prev_layer
         process_table_end_for_prev_env(token, prev_layer)
-      else
-        @mes.outputDebug("1 - process_table_end cur_state=#{@cur_layer.cur_state} @return_from_nested_env~#{@return_from_nested_env}")
-        @mes.excFileWrite(@o_fname) { @output.puts(@cur_layer.table.end) }
       end
     end
 
@@ -103,20 +99,20 @@ module Mdextab
         prev_layer.table.th_append(tmp_table, prev_layer.star)
       when :IN_TABLE
         if prev_layer.table.nil?
-          @mes.outputDebug("In process_nested_table_env_for_prev_env: table=nil token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} cur_state=#{@cur_layer.cur_state}")
+          @mes.output_debug("In process_nested_table_env_for_prev_env: table=nil token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} cur_state=#{@cur_layer.cur_state}")
           raise
         end
         prev_layer.table.add(tmp_table)
       when :IN_TABLE_BODY
         prev_layer.table.add(tmp_table)
       when :START
-        @mes.outputDebug("In process_nested_table_env_for_prev_env: table=nil token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} cur_state=#{@cur_layer.cur_state}")
+        @mes.output_debug("In process_nested_table_env_for_prev_env: table=nil token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} cur_state=#{@cur_layer.cur_state}")
         raise
       else
         v = prev_layer.cur_state || "nil"
-        @mes.outputFatal("E100 cur_state=#{v}")
-        @mes.outputFatal("table=#{prev_layer.table}")
-        @mes.outputFatal("IllegalState(#{@cur_layer.cur_state} in process_table_end(#{token})")
+        @mes.output_fatal("E100 cur_state=#{v}")
+        @mes.output_fatal("table=#{prev_layer.table}")
+        @mes.output_fatal("IllegalState(#{@cur_layer.cur_state} in process_table_end(#{token})")
         exit(@mes.ec("EXIT_CODE_TABLE_END"))
       end
     end
@@ -125,37 +121,37 @@ module Mdextab
       case @cur_layer.cur_state
       when :OUT_OF_TABLE
         if @layers.size > 1
-          @mes.outputFatal("illeagal nested env after parsing|:OUT_OF_TABLE")
-          @mes.outputFatal("@layers.size=#{@layers.size} :TABLE_START #{fname} #{table.lineno}")
-          @layers.map {|x| @mes.outputDebug("== @layers.cur_state=#{x.cur_state} :TABLE_START #{fname} #{x.table.lineno}") }
-          @mes.outputDebug("== table")
-          @mes.outputInfo(table)
+          @mes.output_fatal("illeagal nested env after parsing|:OUT_OF_TABLE")
+          @mes.output_fatal("@layers.size=#{@layers.size} :TABLE_START #{fname} #{table.lineno}")
+          @layers.map {|x| @mes.output_debug("== @layers.cur_state=#{x.cur_state} :TABLE_START #{fname} #{x.table.lineno}") }
+          @mes.output_debug("== table")
+          @mes.output_info(table)
           exit(@mes.ec("EXIT_CODE_EXCEPTION"))
         end
       when :START
         if @layers.size > 1
-          @mes.outputFatal("illeagal nested env after parsing|:START")
-          @mes.outputFatal("@layers.size=#{@layers.size}")
-          @layers.map {|x| @mes.outputError("== @layers.cur_state=#{x.cur_state} :TABLE_START #{fname} #{x.table.lineno}") }
-          @mes.outputError("== table")
-          @mes.outputError(table)
+          @mes.output_fatal("illeagal nested env after parsing|:START")
+          @mes.output_fatal("@layers.size=#{@layers.size}")
+          @layers.map {|x| @mes.output_error("== @layers.cur_state=#{x.cur_state} :TABLE_START #{fname} #{x.table.lineno}") }
+          @mes.output_error("== table")
+          @mes.output_error(table)
           exit(@mes.ec("EXIT_CODE_EXCEPTION"))
         end
       else
-        @mes.outputFatal("illeagal state after parsing(@cur_layer.cur_state=#{@cur_layer.cur_state}|fname=#{fname}")
-        @mes.outputFatal("@layers.size=#{@layers.size}")
-        @mes.outputError("== cur_state=#{@cur_layer.cur_state}")
-        @layers.map {|x| @mes.outputError("== @layers.cur_state=#{x.cur_state} #{fname}:#{x.table.lineno}") }
-        @mes.outputError("")
-        exit(@mes.ec("EXIT_CODE_ILLEAGAL_STATE"))
+        @mes.output_fatal("illeagal state after parsing(@cur_layer.cur_state=#{@cur_layer.cur_state}|fname=#{fname}")
+        @mes.output_fatal("@layers.size=#{@layers.size}")
+        @mes.output_error("== cur_state=#{@cur_layer.cur_state}")
+        @layers.map {|x| @mes.output_error("== @layers.cur_state=#{x.cur_state} #{fname}:#{x.table.lineno}") }
+        @mes.output_error("")
+        exit(@mes.ec("EXIT_CODE_ILLEAG<AL_STATE"))
       end
     end
 
     def debug(nth, token)
-      @mes.outputDebug("***#{nth}")
-      @layers.each_with_index {|_x, ind| @mes.outputDebug("@layers[#{ind}]=#{@layers[ind]}") }
-      @mes.outputDebug("******#{nth}")
-      @mes.outputDebug("Layer#debug 1 token.kind=#{token.kind} @layer.cur_state=#{@cur_layer.cur_state}")
+      @mes.output_debug("***#{nth}")
+      @layers.each_with_index {|_x, ind| @mes.output_debug("@layers[#{ind}]=#{@layers[ind]}") }
+      @mes.output_debug("******#{nth}")
+      @mes.output_debug("Layer#debug 1 token.kind=#{token.kind} @layer.cur_state=#{@cur_layer.cur_state}")
     end
   end
 end

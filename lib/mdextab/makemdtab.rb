@@ -29,17 +29,17 @@ module Mdextab
           @mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
         end
       end
-      @mes.addExitCode("EXIT_CODE_ILLEGAL_DATAOP")
+      @mes.add_exitcode("EXIT_CODE_ILLEGAL_DATAOP")
       Filex::Filex.setup(@mes)
 
-      @output = @mes.excFileWrite(@outputfname) { File.open(@outputfname, "w") }
+      @output = @mes.exc_file_write(@outputfname) { File.open(@outputfname, "w") }
     end
 
     def self.create(opts, fname_variable, fname_static, root_settingfile, mes)
       Filex::Filex.setup(mes)
 
       unless File.exist?(opts["output"])
-        mes.outputFatal("Can't find #{opts['output']}")
+        mes.output_fatal("Can't find #{opts['output']}")
         exit(mes.ec("EXIT_CODE_CANNOT_FIND_FILE"))
       end
       obj_by_yaml = Filex::Filex.check_and_load_yamlfile(root_settingfile, mes)
@@ -57,11 +57,11 @@ module Mdextab
         array = load_file_include(root_dir, @datayamlfname, objx)
       when :YAML_TO_MD
         unless templatefile
-          @mes.outputFatal("Not specified templatefile")
+          @mes.output_fatal("Not specified templatefile")
           exit(@mes.ec("EXIT_CODE_NOT_SPECIFIED_FILE"))
         end
         if templatefile.strip.empty?
-          @mes.outputFatal("Not specified templatefile")
+          @mes.output_fatal("Not specified templatefile")
           exit(@mes.ec("EXIT_CODE_NOT_SPECIFIED_FILE"))
         end
 
@@ -69,7 +69,7 @@ module Mdextab
       else
         array = []
       end
-      array.map {|x| @mes.excFileWrite(@outputfname) { @output.puts(x) } }
+      array.map {|x| @mes.exc_file_write(@outputfname) { @output.puts(x) } }
     end
 
     def load_file_include(root_dir, datayamlfname, objx)
@@ -95,24 +95,24 @@ module Mdextab
     end
 
     def load_yaml_to_md(datayamlfname, templatefile, objx)
-      @mes.outputDebug("datayamlfname=#{datayamlfname}")
-      @mes.outputDebug("objx=#{objx}")
+      @mes.output_debug("datayamlfname=#{datayamlfname}")
+      @mes.output_debug("objx=#{objx}")
 
       objy = Filex::Filex.check_and_expand_yamlfile(datayamlfname, objx, @mes)
-      @mes.outputDebug("objy=#{objy}")
-      @mes.outputDebug("templatefile=#{templatefile}")
+      @mes.output_debug("objy=#{objy}")
+      @mes.output_debug("templatefile=#{templatefile}")
 
       erubystr = Filex::Filex.check_and_load_file(templatefile, @mes)
-      @mes.outputDebug("erubystr=#{erubystr}")
+      @mes.output_debug("erubystr=#{erubystr}")
       dx = [@eruby_static_str, erubystr].join("\n")
-      @mes.outputDebug("dx=#{dx}")
+      @mes.output_debug("dx=#{dx}")
       array = [Filex::Filex.expand_str(dx, objy, @mes, { "datayamlfname" => datayamlfname, "templatefile" => templatefile })]
 
       array
     end
 
     def post_process
-      @mes.excFileClose(@outputfname) { @output&.close }
+      @mes.exc_file_close(@outputfname) { @output&.close }
       @output = nil
     end
   end

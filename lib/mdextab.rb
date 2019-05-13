@@ -22,27 +22,30 @@ module Mdextab
       @o_fname = o_fname
 
       @mes = mes
-      @mes ||= Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt["debug"])
+      unless @mes
+        @mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt["debug"])
+        @mes.register_ecx
+      end
 
-      @mes.addExitCode("EXIT_CODE_NEXT_STATE")
-      @mes.addExitCode("EXIT_CODE_NIL")
-      @mes.addExitCode("EXIT_CODE_EXCEPTION")
-      @mes.addExitCode("EXIT_CODE_TABLE_END")
-      @mes.addExitCode("EXIT_CODE_UNKNOWN")
-      @mes.addExitCode("EXIT_CODE_ILLEAGAL_STATE")
+      @mes.add_exitcode("EXIT_CODE_NEXT_STATE")
+      @mes.add_exitcode("EXIT_CODE_NIL")
+      @mes.add_exitcode("EXIT_CODE_EXCEPTION")
+      @mes.add_exitcode("EXIT_CODE_TABLE_END")
+      @mes.add_exitcode("EXIT_CODE_UNKNOWN")
+      @mes.add_exitcode("EXIT_CODE_ILLEAGAL_STATE")
 
       Filex::Filex.setup(@mes)
 
       unless File.exist?(fname)
-        @mes.outputFatal("Can't find #{fname}")
+        @mes.output_fatal("Can't find #{fname}")
         exit(@mes.ec("EXIT_CODE_CANNOT_FIND_FILE"))
       end
 
       dir = File.dirname(o_fname)
       if dir != "."
-        @mes.excMakeDirectory(dir) { FileUtils.mkdir_p(dir) }
+        @mes.exc_make_directory(dir) { FileUtils.mkdir_p(dir) }
       end
-      @mes.excFileWrite(o_fname) { @output = File.open(o_fname, "w") }
+      @mes.exc_file_write(o_fname) { @output = File.open(o_fname, "w") }
 
       @token_op = Token.new(@mes)
       @layer = Layer.new(@mes, @output)
@@ -51,7 +54,7 @@ module Mdextab
     end
 
     def set_state
-      @state = {
+      @states = {
         START: { TABLE_START: :IN_TABLE, ELSE: :OUT_OF_TABLE, STAR_START: :START, STAR_END: :START },
         OUT_OF_TABLE: { TABLE_START: :IN_TABLE, ELSE: :OUT_OF_TABLE, STAR_START: :OUT_OF_TABLE, STAR_END: :OUT_OF_TABLE, TD: :OUT_OF_TABLE },
         IN_TABLE: { TBODY_START: :IN_TABLE_BODY, TABLE_END: :OUT_OF_TABLE, ELSE: :IN_TABLE, TD: :IN_TD_NO_TBODY, TH: :IN_TH_NO_TBODY, TABLE_START: :IN_TABLE, STAR_START: :IN_TABLE, STAR_END: :IN_TABLE },
@@ -71,27 +74,24 @@ module Mdextab
         token = @token_op.get_token(line, lineno)
         kind = token.kind
 
-        @mes.outputDebug("layer.size=#{@layer.size}")
-        @mes.outputDebug("kind=#{kind}")
-        @mes.outputDebug(%Q!(source)#{lineno}:#{line}!)
+        @mes.output_debug("layer.size=#{@layer.size}")
+        @mes.output_debug("token.kind=#{kind}")
+        @mes.output_debug(%Q!(source)#{lineno}:#{line}!)
         if @layer.cur_state.nil?
-          @mes.outputError("(script)#{__LINE__}| @layer.cur_state=nil")
+          @mes.output_error("(script)#{__LINE__}| @layer.cur_state=nil")
         else
-          @mes.outputDebug("(script)#{__LINE__}| @layer.cur_state=#{@layer.cur_state}")
+          @mes.output_debug("(script)#{__LINE__}| @layer.cur_state=#{@layer.cur_state}")
         end
         #        debug_envs(5, token)
 
-        ret = process_one_line(@layer.cur_state, token, line, lineno, @fname)
-        unless ret
-          @mes.outputFatal("process_one_line returns nil")
+        @layer.cur_state = process_one_line(@layer.cur_state, token, line, lineno, @fname)
+        unless @layer.cur_state
+          @mes.output_fatal("process_one_line returns nil")
           exit(@mes.ec("EXIT_CODE_NEXT_STATE"))
         end
-        @layer.cur_state = ret
 
-        v = @layer.cur_state
-        v ||= "nil"
-        @mes.outputDebug("NEXT kind=#{kind} @layer.cur_state=#{v}")
-        @mes.outputDebug("-----")
+        @mes.output_debug("NEXT kind=#{kind} @layer.cur_state=#{@layer.cur_state}")
+        @mes.output_debug("-----")
       end
       @layer.check_layers(@fname)
     end
@@ -103,48 +103,48 @@ module Mdextab
 
     def get_next_state(token, line, lineno, fname)
       kind = token.kind
-      @mes.outputDebug("#{__LINE__}|@layer.cur_state=#{@layer.cur_state} #{@layer.cur_state.class}")
-      state_level1 = @state[@layer.cur_state]
+      @mes.output_debug("#{__LINE__}|@layer.cur_state=#{@layer.cur_state} #{@layer.cur_state.class}")
+      state_level1 = @states[@layer.cur_state]
       if state_level1.nil?
-        @mes.outputError(%Q(token.kind=#{kind} | cur_state=#{@layer.cur_state}))
-        @mes.outputError("=== state_level1 == nil")
-        @mes.outputFatal("Next State is nil")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_error(%Q(token.kind=#{kind} | cur_state=#{@layer.cur_state}))
+        @mes.output_error("=== state_level1 == nil")
+        @mes.output_fatal("Next State is nil")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         exit(@mes.ec("EXIT_CODE_NIL"))
       else
-        @mes.outputDebug("state_level1=#{state_level1}")
+        @mes.output_debug("state_level1=#{state_level1}")
       end
-      @mes.outputDebug("#{__LINE__}|kind=#{kind}")
+      @mes.output_debug("#{__LINE__}|kind=#{kind}")
 
       begin
         next_state = state_level1[kind]
-        @mes.outputDebug("#{__LINE__}|next_state=#{next_state}")
+        @mes.output_debug("#{__LINE__}|next_state=#{next_state}")
       rescue StandardError
-        @mes.outputFatal("@layer.cur_state=#{@layer.cur_state}")
-        @mes.outputFatal("kind=#{kind}")
-        @mes.outputFatal("next_state=#{next_state}")
+        @mes.output_fatal("@layer.cur_state=#{@layer.cur_state}")
+        @mes.output_fatal("kind=#{kind}")
+        @mes.output_fatal("next_state=#{next_state}")
         exit(@mes.ec("EXIT_CODE_EXCEPTION"))
       end
-      @mes.outputDebug("#{__LINE__}|next_state=#{next_state}")
+      @mes.output_debug("#{__LINE__}|next_state=#{next_state}")
       next_state
     end
 
     def output_in_else(str)
       if @layer.star
         if str.match?(/^\s*$/)
-          @mes.outputDebug("InElse do nothing")
+          @mes.output_debug("InElse do nothing")
         else
-          @mes.excFileWrite(@o_fname) { @output.puts(str) }
+          @mes.exc_file_write(@o_fname) { @output.puts(str) }
         end
       else
-        @mes.excFileWrite(@o_fname) { @output.puts(str) }
+        @mes.exc_file_write(@o_fname) { @output.puts(str) }
       end
     end
 
     def table_th_append_in_else(str)
       if @layer.star
         if str.match?(/^\s*$/)
-          @mes.outputDebug("ThAppend InElse")
+          @mes.output_debug("ThAppend InElse")
         else
           @layer.table.th_append(str, @layer.star)
         end
@@ -156,7 +156,7 @@ module Mdextab
     def table_td_append_in_else(str)
       if @layer.star
         if str.match?(/^\s*$/)
-          @mes.outputDebug("TdAppend InElse")
+          @mes.output_debug("TdAppend InElse")
         else
           @layer.table.td_append(str, @layer.star)
         end
@@ -180,8 +180,8 @@ module Mdextab
         output_in_else("*" + token.opt[:content])
         output_in_else(token.opt[:content])
       else
-        @mes.outputFatal("In :START unknown tag=(#{token.kind}) in process_one_line_for_start")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_fatal("In :START unknown tag=(#{token.kind}) in process_one_line_for_start")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         exit(@mes.ec("EXIT_CODE_UNKNOWN"))
       end
     end
@@ -203,10 +203,18 @@ module Mdextab
         # treat as :ELSE
         output_in_else(":" + token.opt[:content])
       else
-        @mes.outputFatal("In :OUT_OF_TABLE unknown tag=(#{token.kind}) in process_one_line_for_out_of_table")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_fatal("In :OUT_OF_TABLE unknown tag=(#{token.kind}) in process_one_line_for_out_of_table")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         @layer.check_layers(@fname)
       end
+    end
+
+    def process_one_line_for_table_end(token)
+      @layer.process_table_end(token)
+      return if @layer.return_from_nested_env
+
+      @mes.output_debug("1 - process_one_line_table_end cur_state=#{@layer.cur_state} @return_from_nested_env~#{@layer.return_from_nested_env}")
+      @mes.exc_file_write(@o_fname) { @output.puts(@layer.table.end) }
     end
 
     def process_one_line_for_in_table(token, line, lineno, fname)
@@ -214,11 +222,11 @@ module Mdextab
       when :TBODY_START
         @layer.table.add_tbody(lineno)
       when :TABLE_END
-        @layer.process_table_end(token)
+        process_one_line_for_table_end(token)
       when :ELSE
         output_in_else(token.opt[:content])
       when :TD
-        @mes.outputDebug(token)
+        @mes.output_debug(token)
         @layer.table.add_tbody(lineno)
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TH
@@ -233,8 +241,8 @@ module Mdextab
         @layer.star = false
         output_in_else("*" + token.opt[:content])
       else
-        @mes.outputFatal("In :IN_TABLE unknown tag=(#{token.kind}) in process_one_line_for_in_table")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_fatal("In :IN_TABLE unknown tag=(#{token.kind}) in process_one_line_for_in_table")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         exit(@mes.ec("EXIT_CODE_UNKNOWN"))
       end
     end
@@ -244,7 +252,7 @@ module Mdextab
       when :TH
         @layer.table.add_th(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TD
-        @mes.outputDebug(token)
+        @mes.output_debug(token)
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :ELSE
         output_in_else(token.opt[:content])
@@ -253,7 +261,7 @@ module Mdextab
       when :TBODY_END
         true #  don't call process_table_end(token)
       when :TABLE_END
-        @layer.process_table_end(token)
+        process_one_line_for_table_end(token)
       when :STAR_START
         @layer.star = true
         output_in_else("*" + token.opt[:content])
@@ -261,8 +269,8 @@ module Mdextab
         @layer.star = false
         output_in_else("*" + token.opt[:content])
       else
-        @mes.outputFatal("In :IN_TABLE_BODY unknown tag=(#{token.kind}) in process_one_line_for_in_table_body")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_fatal("In :IN_TABLE_BODY unknown tag=(#{token.kind}) in process_one_line_for_in_table_body")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         exit(@mes.ec("EXIT_CODE_UNKNOWN"))
       end
     end
@@ -284,8 +292,8 @@ module Mdextab
         @layer.star = false
         table_th_append_in_else("*" + token.opt[:content])
       else
-        @mes.outputFatal("In :IN_TH unknown tag=(#{token.kind}) in process_one_line_for_in_th")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_fatal("In :IN_TH unknown tag=(#{token.kind}) in process_one_line_for_in_th")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         exit(@mes.ec("EXIT_CODE_UNKNOWN"))
       end
     end
@@ -307,8 +315,8 @@ module Mdextab
         @layer.star = false
         table_th_append_in_else("*" + token.opt[:content])
       else
-        @mes.outputFatal("In :IN_TH_NO_TBODY unknown tag=(#{token.kind}) in process_one_line_for_in_th_no_tbody")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_fatal("In :IN_TH_NO_TBODY unknown tag=(#{token.kind}) in process_one_line_for_in_th_no_tbody")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         exit(@mes.ec("EXIT_CODE_UNKNOWN"))
       end
     end
@@ -332,8 +340,8 @@ module Mdextab
         @layer.star = false
         table_td_append_in_else("*" + token.opt[:content])
       else
-        @mes.outputFatal("In :IN_TD unknown tag=(#{token.kind}) in process_one_line_for_in_td")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_fatal("In :IN_TD unknown tag=(#{token.kind}) in process_one_line_for_in_td")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         exit(@mes.ec("EXIT_CODE_UNKNOWN"))
       end
     end
@@ -349,7 +357,7 @@ module Mdextab
       when :TABLE_START
         @layer.process_nested_table_start(token, lineno, fname)
       when :TABLE_END
-        @layer.process_table_end(token)
+        process_one_line_for_table_end(token)
       when :TBODY_END
         @layer.table.tbody_end
       when :STAR_START
@@ -359,16 +367,16 @@ module Mdextab
         @layer.star = false
         table_td_append_in_else("*" + token.opt[:content])
       else
-        @mes.outputFatal("In :IN_TD_NO_TBODY unknown tag=(#{token.kind}) in process_one_line_for_in_td_no_tbody")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_fatal("In :IN_TD_NO_TBODY unknown tag=(#{token.kind}) in process_one_line_for_in_td_no_tbody")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         exit(@mes.ec("EXIT_CODE_UNKNOWN"))
       end
     end
 
-    def process_one_line(cur_state, token, line, lineno, fname)
-      @return_from_nested_env = false
+    def process_one_line(current_state, token, line, lineno, fname)
+      @layer.return_from_nested_env = false
 
-      case cur_state
+      case current_state
       when :START
         process_one_line_for_start(token, line, lineno, fname)
       when :OUT_OF_TABLE
@@ -376,7 +384,7 @@ module Mdextab
       when :IN_TABLE
         process_one_line_for_in_table(token, line, lineno, fname)
       when :IN_TABLE_BODY
-        process_one_line_in_table_body(token, line, lineno, fname)
+        process_one_line_for_in_table_body(token, line, lineno, fname)
       when :IN_TH
         process_one_line_for_in_th(token, line, lineno, fname)
       when :IN_TH_NO_TBODY
@@ -386,8 +394,8 @@ module Mdextab
       when :IN_TD_NO_TBODY
         process_one_line_for_in_td_no_tbody(token, line, lineno, fname)
       else
-        @mes.outputFatal("In Unknown state(#{cur_state}) in process_one_line")
-        @mes.outputFatal("@fname=#{@fname} | lineno=#{lineno}")
+        @mes.output_fatal("In Unknown state(#{current_state}) in process_one_line")
+        @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
         exit(@mes.ec("EXIT_CODE_UNKNOWN"))
       end
 
@@ -396,13 +404,13 @@ module Mdextab
       else
         next_state = get_next_state(token, line, lineno, fname)
 
-        @mes.outputDebug("#{__LINE__}|next_state=#{next_state}")
+        @mes.output_debug("#{__LINE__}|next_state=#{next_state}")
       end
       next_state
     end
 
     def end
-      @mes.excFileClose(@o_fname) { @output.close }
+      @mes.exc_file_close(@o_fname) { @output.close }
     end
   end
 end

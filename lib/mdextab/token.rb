@@ -92,7 +92,7 @@ module Mdextab
         if %r{^\s*</tbody>\s*$}.match?(line)
           ret = create_token(:TBODY_END, { lineno: lineno })
         else
-          @mes.outputDebug("E001 line=#{line}")
+          @mes.output_debug("E001 line=#{line}")
           ret = nil
         end
       else
