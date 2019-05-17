@@ -106,7 +106,7 @@ module Mdextab
         end
         #        debug_envs(5, token)
 
-        @layer.cur_state = process_one_line(@layer.cur_state, token, line, lineno, @fname)
+        @layer.cur_state = process_one_line(@layer.cur_state, token, line, lineno)
         unless @layer.cur_state
           @mes.output_fatal("process_one_line returns nil")
           exit(@mes.ec("EXIT_CODE_NEXT_STATE"))
@@ -131,8 +131,7 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def get_next_state(token, line, lineno, fname)
+    def get_next_state(token, line, lineno)
       kind = token.kind
       @mes.output_debug("#{__LINE__}|@layer.cur_state=#{@layer.cur_state} #{@layer.cur_state.class}")
       state_level1 = @states[@layer.cur_state]
@@ -210,8 +209,7 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def process_one_line_for_start(token, line, lineno, fname)
+    def process_one_line_for_start(token, line, lineno)
       case token.kind
       when :TABLE_START
         @layer.table = Table.new(lineno, @mes, token.opt[:attr])
@@ -237,8 +235,7 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def process_one_line_for_out_of_table(token, line, lineno, fname)
+    def process_one_line_for_out_of_table(token, line, lineno)
       case token.kind
       when :TABLE_START
         @layer.table = Table.new(lineno, @mes, token.opt[:attr])
@@ -277,8 +274,7 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def process_one_line_for_in_table(token, line, lineno, fname)
+    def process_one_line_for_in_table(token, line, lineno)
       case token.kind
       when :TBODY_START
         @layer.table.add_tbody(lineno)
@@ -294,7 +290,7 @@ module Mdextab
         @layer.table.add_tbody(lineno)
         @layer.table.add_th(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno, fname)
+        @layer.process_nested_table_start(token, lineno)
       when :STAR_START
         @layer.star = true
         output_in_else("*" + token.opt[:content])
@@ -313,8 +309,7 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def process_one_line_for_in_table_body(token, line, lineno, fname)
+    def process_one_line_for_in_table_body(token, line, lineno)
       case token.kind
       when :TH
         @layer.table.add_th(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
@@ -324,7 +319,7 @@ module Mdextab
       when :ELSE
         output_in_else(token.opt[:content])
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno, fname)
+        @layer.process_nested_table_start(token, lineno)
       when :TBODY_END
         true #  don't call process_table_end(token)
       when :TABLE_END
@@ -347,8 +342,7 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def process_one_line_for_in_th(token, line, lineno, fname)
+    def process_one_line_for_in_th(token, line, lineno)
       case token.kind
       when :ELSE
         table_th_append_in_else(token.opt[:content])
@@ -357,7 +351,7 @@ module Mdextab
       when :TD
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno, fname)
+        @layer.process_nested_table_start(token, lineno)
       when :STAR_START
         @layer.star = true
         table_th_append_in_else("*" + token.opt[:content])
@@ -376,8 +370,7 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def process_one_line_for_in_th_no_tbody(token, line, lineno, fname)
+    def process_one_line_for_in_th_no_tbody(token, line, lineno)
       case token.kind
       when :ELSE
         table_th_append_in_else(token.opt[:content])
@@ -386,7 +379,7 @@ module Mdextab
       when :TD
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno, fname)
+        @layer.process_nested_table_start(token, lineno)
       when :STAR_START
         @layer.star = true
         table_th_append_in_else("*" + token.opt[:content])
@@ -405,8 +398,7 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def process_one_line_for_in_td(token, line, lineno, fname)
+    def process_one_line_for_in_td(token, line, lineno)
       case token.kind
       when :ELSE
         table_td_append_in_else(token.opt[:content])
@@ -417,7 +409,7 @@ module Mdextab
       when :TBODY_END
         @layer.table.tbody_end
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno, fname)
+        @layer.process_nested_table_start(token, lineno)
       when :STAR_START
         @layer.star = true
         table_td_append_in_else("*" + token.opt[:content])
@@ -436,8 +428,7 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def process_one_line_for_in_td_no_tbody(token, line, lineno, fname)
+    def process_one_line_for_in_td_no_tbody(token, line, lineno)
       case token.kind
       when :ELSE
         table_td_append_in_else(token.opt[:content])
@@ -446,7 +437,7 @@ module Mdextab
       when :TD
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno, fname)
+        @layer.process_nested_table_start(token, lineno)
       when :TABLE_END
         process_one_line_for_table_end(token)
       when :TBODY_END
@@ -470,27 +461,26 @@ module Mdextab
     # @param [String] token 読み込んだトークン
     # @param [String] line 現在行
     # @param [String] lineno 現在行の行番号
-    # @param [String] fname 入力Makrdownファイル名
-    def process_one_line(current_state, token, line, lineno, fname)
+    def process_one_line(current_state, token, line, lineno)
       @layer.return_from_nested_env = false
 
       case current_state
       when :START
-        process_one_line_for_start(token, line, lineno, fname)
+        process_one_line_for_start(token, line, lineno)
       when :OUT_OF_TABLE
-        process_one_line_for_out_of_table(token, line, lineno, fname)
+        process_one_line_for_out_of_table(token, line, lineno)
       when :IN_TABLE
-        process_one_line_for_in_table(token, line, lineno, fname)
+        process_one_line_for_in_table(token, line, lineno)
       when :IN_TABLE_BODY
-        process_one_line_for_in_table_body(token, line, lineno, fname)
+        process_one_line_for_in_table_body(token, line, lineno)
       when :IN_TH
-        process_one_line_for_in_th(token, line, lineno, fname)
+        process_one_line_for_in_th(token, line, lineno)
       when :IN_TH_NO_TBODY
-        process_one_line_for_in_th_no_tbody(token, line, lineno, fname)
+        process_one_line_for_in_th_no_tbody(token, line, lineno)
       when :IN_TD
-        process_one_line_for_in_td(token, line, lineno, fname)
+        process_one_line_for_in_td(token, line, lineno)
       when :IN_TD_NO_TBODY
-        process_one_line_for_in_td_no_tbody(token, line, lineno, fname)
+        process_one_line_for_in_td_no_tbody(token, line, lineno)
       else
         @mes.output_fatal("In Unknown state(#{current_state}) in process_one_line")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -500,14 +490,11 @@ module Mdextab
       if @layer.return_from_nested_env
         next_state = @layer.cur_state
       else
-        next_state = get_next_state(token, line, lineno, fname)
+        next_state = get_next_state(token, line, lineno, @fname)
 
         @mes.output_debug("#{__LINE__}|next_state=#{next_state}")
       end
       next_state
     end
-    
-    def end
-      @mes.exc_file_close(@o_fname) { @output.close }
-    end  end
+  end
 end
