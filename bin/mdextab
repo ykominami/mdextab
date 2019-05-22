@@ -18,4 +18,3 @@ yaml_fname = ARGV[2]
 opts["yaml_fname"] = yaml_fname
 m = Mdextab::Mdextab.new(opts, fname, o_fname)
 m.parse2(yaml_fname)
-m.end
