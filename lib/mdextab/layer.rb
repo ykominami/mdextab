@@ -78,9 +78,9 @@ module Mdextab
 
     def process_table_end(token)
       prev_layer = peek_prev_layer
-      if prev_layer
-        process_table_end_for_prev_env(token, prev_layer)
-      end
+      return unless prev_layer
+
+      process_table_end_for_prev_env(token, prev_layer)
     end
 
     def process_table_end_for_prev_env(token, prev_layer)
