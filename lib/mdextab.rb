@@ -1,4 +1,3 @@
-# coding: utf-8
 #
 # MarkDownテーブル拡張モジュール
 #
@@ -496,7 +495,7 @@ module Mdextab
     end
 
     def post_process
-      @output.close if @output
+      @output&.close
       @output = nil
     end
   end
