@@ -287,7 +287,7 @@ module Mdextab
         @layer.table.add_tbody(lineno)
         @layer.table.add_th(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
         output_in_else("*" + token.opt[:content])
@@ -316,7 +316,7 @@ module Mdextab
       when :ELSE
         output_in_else(token.opt[:content])
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fnam)
       when :TBODY_END
         true #  don't call process_table_end(token)
       when :TABLE_END
@@ -348,7 +348,7 @@ module Mdextab
       when :TD
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
         table_th_append_in_else("*" + token.opt[:content])
@@ -376,7 +376,7 @@ module Mdextab
       when :TD
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
         table_th_append_in_else("*" + token.opt[:content])
@@ -406,7 +406,7 @@ module Mdextab
       when :TBODY_END
         @layer.table.tbody_end
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
         table_td_append_in_else("*" + token.opt[:content])
@@ -434,7 +434,7 @@ module Mdextab
       when :TD
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :TABLE_END
         process_one_line_for_table_end(token)
       when :TBODY_END
