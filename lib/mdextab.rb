@@ -235,7 +235,6 @@ module Mdextab
       when :STAR_END
         @layer.star = false
         output_in_else("*" + token.opt[:content])
-        output_in_else(token.opt[:content])
       else
         @mes.output_fatal("In :START unknown tag=(#{token.kind}) in process_one_line_for_start")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -261,7 +260,6 @@ module Mdextab
         output_in_else("*" + token.opt[:content])
       when :STAR_END
         @layer.star = false
-        output_in_else("*" + token.opt[:content])
         output_in_else(token.opt[:content])
       when :TD
         # treat as :ELSE
@@ -466,7 +464,7 @@ module Mdextab
       when :TD
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :TABLE_END
         process_one_line_for_table_end(token)
       when :TBODY_END
@@ -521,11 +519,16 @@ module Mdextab
       if @layer.return_from_nested_layer
         next_state = @layer.cur_state
       else
-        next_state = get_next_state(token, line, lineno, @fname)
+        next_state = get_next_state(token, line, lineno)
 
         @mes.output_debug("#{__LINE__}|next_state=#{next_state}")
       end
       next_state
+    end
+
+    def post_process
+      @output&.close
+      @output = nil
     end
   end
 end
