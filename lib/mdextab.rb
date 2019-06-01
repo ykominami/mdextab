@@ -1,4 +1,3 @@
-# coding: utf-8
 #
 # MarkDownテーブル拡張モジュール
 #
@@ -9,7 +8,7 @@ module Mdextab
   class Error < StandardError; end
 
   #
-  # MarkDownテーブル拡張モジュールクラス
+  # MarkDownテーブル拡張クラス
   #
   class Mdextab
     require "mdextab/version"
@@ -29,26 +28,26 @@ module Mdextab
 
     #
     # 初期化
-    # @param [Hash] オプション
-    # @param [String] 入力Markdownファイル名
-    # @param [String] 出力Markdownファイル名
-    # @param [Messagex] mes Messagexクラスのインスタンス
+    #
+    # @param opt [Hash] オプション
+    # @option opt [Symbol] :debug Messagexクラスのインスタンスに与えるデバッグモード
+    # @param fname [String] 入力Markdownファイル名
+    # @param o_fname [String] 出力Markdownファイル名
+    # @param mes [Messagex] Messagexクラスのインスタンス
     def initialize(opt, fname, o_fname, mes=nil)
       @fname = fname
       @o_fname = o_fname
 
       @mes = mes
       unless @mes
-        @mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt["debug"])
+        @mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt[:debug])
         @mes.register_ecx
       end
 
       @mes.add_exitcode("EXIT_CODE_NEXT_STATE")
       @mes.add_exitcode("EXIT_CODE_NIL")
       @mes.add_exitcode("EXIT_CODE_EXCEPTION")
-      @mes.add_exitcode("EXIT_CODE_TABLE_END")
       @mes.add_exitcode("EXIT_CODE_UNKNOWN")
-      @mes.add_exitcode("EXIT_CODE_ILLEAGAL_STATE")
 
       Filex::Filex.setup(@mes)
 
@@ -72,6 +71,7 @@ module Mdextab
     #
     # テーブル拡張向け構文解析用状態遷移テーブルの設定
     #
+    # @return [void]
     def set_state
       @states = {
         START: { TABLE_START: :IN_TABLE, ELSE: :OUT_OF_TABLE, STAR_START: :START, STAR_END: :START },
@@ -87,7 +87,9 @@ module Mdextab
 
     #
     # テーブル拡張向け構文解析
-    # @param [Hash] eRubyスクリプト向け置換用ハッシュ
+    #
+    # @param hash [Hash] eRubyスクリプト向け置換用ハッシュ
+    # @return [void]
     def parse(hash)
       lineno = 0
       @layer.add_layer(@fname, lineno)
@@ -104,7 +106,6 @@ module Mdextab
         else
           @mes.output_debug("(script)#{__LINE__}| @layer.cur_state=#{@layer.cur_state}")
         end
-        #        debug_envs(5, token)
 
         @layer.cur_state = process_one_line(@layer.cur_state, token, line, lineno)
         unless @layer.cur_state
@@ -120,7 +121,9 @@ module Mdextab
 
     #
     # テーブル拡張向け構文解析
-    # @param [String] eRubyスクリプト向け置換用データファイル名(YAML形式)
+    #
+    # @param yamlfname [String] eRubyスクリプト向け置換用データファイル名(YAML形式)
+    # @return [void]
     def parse2(yamlfname)
       hs = Filex::Filex.check_and_load_yamlfile(yamlfname, @mes)
       parse(hs)
@@ -128,9 +131,11 @@ module Mdextab
 
     #
     # テーブル拡張向け構文解析での次の状態を得る
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    #
+    # @param token [Token] 読み込んだトークン
+    # @param line [String] トークン出現行
+    # @param lineno [String] トークン出現行の行番号
+    # @return [Symbol] テーブル拡張向け構文解析での次の状態
     def get_next_state(token, line, lineno)
       kind = token.kind
       @mes.output_debug("#{__LINE__}|@layer.cur_state=#{@layer.cur_state} #{@layer.cur_state.class}")
@@ -161,7 +166,9 @@ module Mdextab
 
     #
     # トークンELSEに対応する行の出力
-    # @param [String] str トークンELSEに対応する行
+    #
+    # @param str [String] トークンELSEに対応する行
+    # @return [void]
     def output_in_else(str)
       if @layer.star
         if str.match?(/^\s*$/)
@@ -176,7 +183,9 @@ module Mdextab
 
     #
     # テーブルのTHタグの一部として、トークンELSEに対応する行を追加
-    # @param [String] str トークンELSEに対応する行
+    #
+    # @param str [String] トークンELSEに対応する行
+    # @return [void]
     def table_th_append_in_else(str)
       if @layer.star
         if str.match?(/^\s*$/)
@@ -191,7 +200,9 @@ module Mdextab
 
     #
     # テーブルのTDタグの一部として、トークンELSEに対応する行を追加
-    # @param [String] str トークンELSEに対応する行
+    #
+    # @param str [String] トークンELSEに対応する行
+    # @return [void]
     def table_td_append_in_else(str)
       if @layer.star
         if str.match?(/^\s*$/)
@@ -205,10 +216,12 @@ module Mdextab
     end
 
     #
-    # START状態でのトークンと現在行の処理
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    # START状態でのトークンとトークン出現行の処理
+    #
+    # @param token [Token] 読み込んだトークン
+    # @param line [String] トークン出現行
+    # @param lineno [String] トークン出現行の行番号
+    # @return [void]
     def process_one_line_for_start(token, line, lineno)
       case token.kind
       when :TABLE_START
@@ -231,10 +244,12 @@ module Mdextab
     end
 
     #
-    # OUT_OF_TABLE状態でのトークンと現在行の処理
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    # OUT_OF_TABLE状態でのトークンとトークン出現行の処理
+    #
+    # @param token [Token] 読み込んだトークン
+    # @param line [String] トークン出現行
+    # @param lineno [String] トークン出現行の行番号
+    # @return [void]
     def process_one_line_for_out_of_table(token, line, lineno)
       case token.kind
       when :TABLE_START
@@ -260,20 +275,24 @@ module Mdextab
 
     #
     # TABLE_END状態でのトークン処理
-    # @param [String] token 読み込んだトークン
+    #
+    # @param token [Token] 読み込んだトークン
+    # @return [void]
     def process_one_line_for_table_end(token)
       @layer.process_table_end(token)
-      return if @layer.return_from_nested_env
+      return if @layer.return_from_nested_layer
 
-      @mes.output_debug("1 - process_one_line_table_end cur_state=#{@layer.cur_state} @return_from_nested_env~#{@layer.return_from_nested_env}")
-      @mes.exc_file_write(@o_fname) { @output.puts(@layer.table.end) }
+      @mes.output_debug("1 - process_one_line_table_end cur_state=#{@layer.cur_state} @return_from_nested_layer~#{@layer.return_from_nested_layer}")
+      @mes.exc_file_write(@o_fname) { @output.puts(@layer.table.table_end) }
     end
 
     #
-    # IN_TABLE状態でのトークンと現在行の処理
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    # IN_TABLE状態でのトークンとトークン出現行の処理
+    #
+    # @param token [Token] 読み込んだトークン
+    # @param line [String] トークン出現行
+    # @param lineno [String] トークン出現行の行番号
+    # @return [void]
     def process_one_line_for_in_table(token, line, lineno)
       case token.kind
       when :TBODY_START
@@ -290,7 +309,7 @@ module Mdextab
         @layer.table.add_tbody(lineno)
         @layer.table.add_th(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
         output_in_else("*" + token.opt[:content])
@@ -305,10 +324,12 @@ module Mdextab
     end
 
     #
-    # IN_TABLE_BODY状態でのトークンと現在行の処理
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    # IN_TABLE_BODY状態でのトークンとトークン出現行の処理
+    #
+    # @param token [Token] 読み込んだトークン
+    # @param line [String] トークン出現行
+    # @param lineno [String] トークン出現行の行番号
+    # @return [void]
     def process_one_line_for_in_table_body(token, line, lineno)
       case token.kind
       when :TH
@@ -319,7 +340,7 @@ module Mdextab
       when :ELSE
         output_in_else(token.opt[:content])
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :TBODY_END
         true #  don't call process_table_end(token)
       when :TABLE_END
@@ -338,10 +359,12 @@ module Mdextab
     end
 
     #
-    # IN_TH状態でのトークンと現在行の処理
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    # IN_TH状態でのトークンとトークン出現行の処理
+    #
+    # @param token [Token] 読み込んだトークン
+    # @param line [String] トークン出現行
+    # @param lineno [String] トークン出現行の行番号
+    # @return [void]
     def process_one_line_for_in_th(token, line, lineno)
       case token.kind
       when :ELSE
@@ -351,7 +374,7 @@ module Mdextab
       when :TD
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
         table_th_append_in_else("*" + token.opt[:content])
@@ -366,10 +389,12 @@ module Mdextab
     end
 
     #
-    # IN_TH_NO_TBODY状態でのトークンと現在行の処理
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    # IN_TH_NO_TBODY状態でのトークンとトークン出現行の処理
+    #
+    # @param token [Token] 読み込んだトークン
+    # @param line [String] トークン出現行
+    # @param lineno [String] トークン出現行の行番号
+    # @return [void]
     def process_one_line_for_in_th_no_tbody(token, line, lineno)
       case token.kind
       when :ELSE
@@ -379,7 +404,7 @@ module Mdextab
       when :TD
         @layer.table.add_td(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
         table_th_append_in_else("*" + token.opt[:content])
@@ -394,10 +419,12 @@ module Mdextab
     end
 
     #
-    # IN_TD状態でのトークンと現在行の処理
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    # IN_TD状態でのトークンとトークン出現行の処理
+    #
+    # @param token [Token] 読み込んだトークン
+    # @param line [String] トークン出現行
+    # @param lineno [String] トークン出現行の行番号
+    # @return [void]
     def process_one_line_for_in_td(token, line, lineno)
       case token.kind
       when :ELSE
@@ -409,7 +436,7 @@ module Mdextab
       when :TBODY_END
         @layer.table.tbody_end
       when :TABLE_START
-        @layer.process_nested_table_start(token, lineno)
+        @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
         table_td_append_in_else("*" + token.opt[:content])
@@ -424,10 +451,12 @@ module Mdextab
     end
 
     #
-    # IN_TD_NO_TBODY状態でのトークンと現在行の処理
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    # IN_TD_NO_TBODY状態でのトークンとトークン出現行の処理
+    #
+    # @param token [Token] 読み込んだトークン
+    # @param line [String] トークン出現行
+    # @param lineno [String] トークン出現行の行番号
+    # @return [void]
     def process_one_line_for_in_td_no_tbody(token, line, lineno)
       case token.kind
       when :ELSE
@@ -456,13 +485,15 @@ module Mdextab
     end
 
     #
-    # 現在の状態に対するトークンと現在行の処理
+    # 現在の状態に対するトークンとトークン出現行の処理
+    #
     # @param [Symbol] current_state 現在の状態
-    # @param [String] token 読み込んだトークン
-    # @param [String] line 現在行
-    # @param [String] lineno 現在行の行番号
+    # @param [Token] token 読み込んだトークン
+    # @param [String] line トークン出現行
+    # @param [String] lineno トークン出現行の行番号
+    # @return [void] テーブル拡張向け構文解析での次の状態
     def process_one_line(current_state, token, line, lineno)
-      @layer.return_from_nested_env = false
+      @layer.return_from_nested_layer = false
 
       case current_state
       when :START
@@ -487,7 +518,7 @@ module Mdextab
         exit(@mes.ec("EXIT_CODE_UNKNOWN"))
       end
 
-      if @layer.return_from_nested_env
+      if @layer.return_from_nested_layer
         next_state = @layer.cur_state
       else
         next_state = get_next_state(token, line, lineno, @fname)
