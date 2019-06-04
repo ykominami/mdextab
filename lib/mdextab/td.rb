@@ -19,8 +19,8 @@ module Mdextab
     # @param content [String] TDトークンのコンテンツ
     # @param condense [Boolean] 文字列化方法 true:改行を含めない false:改行を含める
     # @return [void]
-    def add(content, condnese)
-      if condnese
+    def add(content, condense)
+      if condense
         if @content
           if @contnet.match?(/^\s*$/)
             @content = content.to_s

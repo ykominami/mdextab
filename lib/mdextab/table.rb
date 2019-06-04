@@ -32,7 +32,7 @@ module Mdextab
     #
     # @param lineno [Integer] TABLE_STARTトークンの出現行の行番号
     # @param mes [Messagex] Messagexクラスのインスタンス
-    # @param sttr [String] TABLE_STARTトークンの属性
+    # @param attr [String] TABLE_STARTトークンの属性
     def initialize(lineno, mes, attr=nil)
       @lineno = lineno
       @attr = attr

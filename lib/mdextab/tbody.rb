@@ -18,8 +18,8 @@ module Mdextab
     #
     # 初期化
     #
-    # @param fname [String] 構文解析対象のMarkdownファイル名
     # @param lineno [String] TBODYトークン出現行の行番号
+    # @param mes [Messagex] Messagexクラスのインスタンス
     def initialize(lineno, mes)
       @array = []
       @tr = nil

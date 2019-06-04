@@ -9,8 +9,8 @@ module Mdextab
     #
     # 初期化
     #
-    # @param opt [Hash] オプション
-    # @option opt [Symbol] :debug Messagexクラスのインスタンスに与えるデバッグモード
+    # @param opts [Hash] オプション
+    # @option opts [Symbol] :debug Messagexクラスのインスタンスに与えるデバッグモード
     # @param eruby_variable_str [String] 2回の置き換えが必要なeRubyスクリプト
     # @param eruby_static_str [String] 1回の置き換えが必要なeRubyスクリプト
     # @param obj_by_yaml [Hash] eRubyスクリプト向け置換用ハッシュ
@@ -42,14 +42,14 @@ module Mdextab
     #
     # ファイルから生成（使われていない？）
     #
-    # @param opt [Hash] オプション
-    # @option opt [String] :debug Messagexクラスのインスタンスに与えるデバッグモード
-    # @option opt [IO] :output 出力先IO
-    # @param fname_variable_str [String] 2回の置き換えが必要なeRubyスクリプトファイル名
-    # @param fname_static_str [String] 1回の置き換えが必要なeRubyスクリプトファイル名
+    # @param opts [Hash] オプション
+    # @option opts [String] :debug Messagexクラスのインスタンスに与えるデバッグモード
+    # @option opts [IO] :output 出力先IO
+    # @param fname_variable [String] 2回の置き換えが必要なeRubyスクリプトファイル名
+    # @param fname_static [String] 1回の置き換えが必要なeRubyスクリプトファイル名
     # @param root_settingfile [String] eRubyスクリプト向け置換用YAML形式ファイル名
     # @param mes [Messagex] Messagexクラスのインスタンス
-    # @retrun [Makemdtab]
+    # @return [Makemdtab]
     def self.create(opts, fname_variable, fname_static, root_settingfile, mes)
       Filex::Filex.setup(mes)
 
@@ -71,7 +71,7 @@ module Mdextab
     # @param root_dir [String] ルートディレクト(templatefileが示す相対パスの起点)
     # @param templatefile [String,nil] テーブル拡張Makrdown形式の変換元YAML形式ファイルへの相対パス
     # @param auxhs [Hash] eRubyスクリプト向け置換用ハッシュ（@obj_by_yamlにマージする）
-    # @retrun [void]
+    # @return [void]
     def make_md2(root_dir, templatefile=nil, auxhs={})
       # 補助的な置換用ハッシュを@obj_by_yamlにマージする
       objx = @obj_by_yaml.merge(auxhs)
@@ -102,7 +102,7 @@ module Mdextab
     # @param root_dir [String] ルートディレクト(eruby_fnameが示す相対パスの起点)
     # @param eruby_fname [String] fileReadメソッド呼び出しを含むeRubyスクリプトファイル名
     # @param objx [Hash] eRubyスクリプト向け置換用ハッシュ
-    # @retrun [Array<String>] 指定ファイルを取り込んで展開した結果の文字列の配列(ただし要素は1個のみ)
+    # @return [Array<String>] 指定ファイルを取り込んで展開した結果の文字列の配列(ただし要素は1個のみ)
     def load_file_include(root_dir, eruby_fname, objx)
       # eruby_fnameはfileReadメソッド呼び出しを含むeRubyスクリプトファイル
       # fileReadメソッドは、引数を読み込むべきファイルへのパスに変換して、ファイルを読み込む
@@ -141,7 +141,7 @@ module Mdextab
     # @param datayamlfname [String] eRubyスクリプトファイルでもあるYAML形式ファイル
     # @param templatefile [String] YAML形式をテーブル拡張Markdwon形式に変換するeRubyスクリプトファイル
     # @param objx [Hash] eRubyスクリプト向け置換用ハッシュ
-    # @retrun [Array<String>] 変換されたテーブル拡張Markdwon形式の文字列の配列(ただし要素は1個のみ)
+    # @return [Array<String>] 変換されたテーブル拡張Markdwon形式の文字列の配列(ただし要素は1個のみ)
     def load_yaml_to_md(datayamlfname, templatefile, objx)
       @mes.output_debug("datayamlfname=#{datayamlfname}")
       @mes.output_debug("objx=#{objx}")

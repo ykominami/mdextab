@@ -14,7 +14,7 @@ module Mdextab
     #
     # TRトークンのコンテンツ追加
     #
-    # @param content [String] TRトークンのコンテンツ
+    # @param cont [String] TRトークンのコンテンツ
     # @return [void]
     def add(cont)
       @array << cont
