@@ -7,6 +7,7 @@ AllCops:
   StyleGuideBaseURL: https://github.com/fortissimo1997/ruby-style-guide/blob/japanese/README.ja.md
 #
   Exclude:
+    - "Gemfile"
     - "Rakefile"
     - "*.gemspec"
     - "vendor/**/*"
