@@ -140,7 +140,7 @@ module Mdextab
     # @return [void]
     def process_table_end(token)
       prev_layer = peek_prev_layer
-      retrun unless prev_layer
+      return unless prev_layer
 
       # 一つ前のレイヤーが存在すれば、入れ子のTABLE_ENDトークンとして処理する
       process_table_end_for_prev_env(token)

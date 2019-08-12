@@ -143,7 +143,7 @@ module Mdextab
         cont = Regexp.last_match(2)
         ret = get_token_colon_start(line, lineno, nth, cont)
       when %r{^\s*</table}
-        ret = get_token_end_table(line, lineno)
+        ret = get_token_table_end(line, lineno)
       when %r{^\s*</tbody}
         if %r{^\s*</tbody>\s*$}.match?(line)
           ret = create_token(:TBODY_END, { lineno: lineno })
