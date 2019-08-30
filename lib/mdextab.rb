@@ -41,7 +41,7 @@ module Mdextab
       @mes = mes
       unless @mes
         @mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, opt[:debug])
-        @mes.register_ecx
+        @mes.register_exc
       end
 
       @mes.add_exitcode("EXIT_CODE_NEXT_STATE")
