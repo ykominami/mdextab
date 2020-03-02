@@ -11,11 +11,55 @@ Layout/EmptyLineAfterMagicComment:
   Exclude:
 #    - 'lib/mdextab.rb'
 
+Layout/CommentIndentation:
+  Exclude:
+#    - 'lib/mdextab/table.rb'
+#    - 'lib/mdextab/tbody.rb'
+#    - 'lib/mdextab/token.rb'
+
+# Cop supports --auto-correct.
+# Configuration parameters: AllowAdjacentOneLineDefs, NumberOfEmptyLines.
+Layout/EmptyLineBetweenDefs:
+  Exclude:
+#    - 'lib/mdextab/table.rb'
+
+# Cop supports --auto-correct.
+Layout/EmptyLines:
+  Exclude:
+#    - 'lib/mdextab/table.rb'
+
+# Cop supports --auto-correct.
+# Configuration parameters: EnforcedStyle.
+# SupportedStyles: normal, rails
+Layout/IndentationConsistency:
+  Exclude:
+#    - 'lib/mdextab/table.rb'
+
+# Cop supports --auto-correct.
+# Configuration parameters: Width, IgnoredPatterns.
+Layout/IndentationWidth:
+  Exclude:
+#    - 'lib/mdextab/table.rb'
+
 # Cop supports --auto-correct.
 # Configuration parameters: .
 # SupportedStyles: space, no_space
 Layout/SpaceAroundEqualsInParameterDefault:
   EnforcedStyle: no_space
+
+# Cop supports --auto-correct.
+# Configuration parameters: IndentationWidth.
+Layout/Tab:
+  Exclude:
+#    - 'lib/mdextab/table.rb'
+#    - 'lib/mdextab/tbody.rb'
+#    - 'lib/mdextab/token.rb'
+
+# Cop supports --auto-correct.
+# Configuration parameters: AllowInHeredoc.
+Layout/TrailingWhitespace:
+  Exclude:
+#    - 'lib/mdextab/tbody.rb'
 
 Metrics/AbcSize:
   Max: 46
