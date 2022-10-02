@@ -40,6 +40,7 @@ module Mdextab
     # @return [Symbol] 現在の状態
     def cur_state
       raise if @cur_layer.cur_state.class != Symbol
+
       @cur_layer.cur_state
     end
 
@@ -83,11 +84,11 @@ module Mdextab
       @size = @layers.size
       # raise if state.class != Symbol
       new_layer.cur_state = state
-      if @cur_layer
-        new_layer.star = @cur_layer.star
-      else
-        new_layer.star = false
-      end
+      new_layer.star = if @cur_layer
+                         @cur_layer.star
+                       else
+                         false
+                       end
       @cur_layer = new_layer
     end
 
@@ -123,9 +124,7 @@ module Mdextab
     # @return [void]
     def process_nested_table_start(token, lineno, fname)
       # TBODYトークンが出現する前にTABLE_STARTトークンが出現した場合、仮想的なTBODYトークンが出現したとみなす
-      if table.tbody.nil?
-        table.add_tbody(lineno)
-      end
+      table.add_tbody(lineno) if table.tbody.nil?
       @mes.output_debug("B process_nested_table_start 1 @cur_layer.table=#{@cur_layer.table.object_id} token.kind=#{token.kind} token.opt[:lineno]=#{token.opt[:lineno]} cur_state=#{@cur_layer.cur_state}")
       # 新しいレイヤーを追加して、それをカレントレイヤーとし、カレントレイヤーにTableを追加する
       add_layer(fname, lineno, :OUT_OF_TABLE)
@@ -199,7 +198,7 @@ module Mdextab
         if @layers.size > 1
           @mes.output_fatal("illeagal nested env after parsing|:OUT_OF_TABLE")
           @mes.output_fatal("@layers.size=#{@layers.size} :TABLE_START #{fname} #{table.lineno}")
-          @layers.map {|x| @mes.output_debug("== @layers.cur_state=#{x.cur_state} :TABLE_START #{fname} #{x.table.lineno}") }
+          @layers.map { |x| @mes.output_debug("== @layers.cur_state=#{x.cur_state} :TABLE_START #{fname} #{x.table.lineno}") }
           @mes.output_debug("== table")
           @mes.output_info(table)
           exit(@mes.ec("EXIT_CODE_EXCEPTION"))
@@ -208,7 +207,7 @@ module Mdextab
         if @layers.size > 1
           @mes.output_fatal("illeagal nested env after parsing|:START")
           @mes.output_fatal("@layers.size=#{@layers.size}")
-          @layers.map {|x| @mes.output_error("== @layers.cur_state=#{x.cur_state} :TABLE_START #{fname} #{x.table.lineno}") }
+          @layers.map { |x| @mes.output_error("== @layers.cur_state=#{x.cur_state} :TABLE_START #{fname} #{x.table.lineno}") }
           @mes.output_error("== table")
           @mes.output_error(table)
           exit(@mes.ec("EXIT_CODE_EXCEPTION"))
@@ -217,7 +216,7 @@ module Mdextab
         @mes.output_fatal("illeagal state after parsing(@cur_layer.cur_state=#{@cur_layer.cur_state}|fname=#{fname}")
         @mes.output_fatal("@layers.size=#{@layers.size}")
         @mes.output_error("== cur_state=#{@cur_layer.cur_state}")
-        @layers.map {|x| @mes.output_error("== @layers.cur_state=#{x.cur_state} #{fname}:#{x.table.lineno}") }
+        @layers.map { |x| @mes.output_error("== @layers.cur_state=#{x.cur_state} #{fname}:#{x.table.lineno}") }
         @mes.output_error("")
         exit(@mes.ec("EXIT_CODE_ILLEAG<AL_STATE"))
       end

@@ -40,13 +40,10 @@ module Mdextab
     # @note TABLE_STARTトークンが存在するかもしれないと判断されたときに呼ばれる
     def get_token_table_start(line, lineno)
       if /^\s*<table>\s*$/.match?(line)
-        ret = create_token(:TABLE_START, { lineno: lineno })
+        create_token(:TABLE_START, { lineno: lineno })
       elsif (m = /^\s*<table\s+(.+)>\s*$/.match(line))
-        ret = create_token(:TABLE_START, { attr: m[1], lineno: lineno })
-      else
-        ret = nil
+        create_token(:TABLE_START, { attr: m[1], lineno: lineno })
       end
-      ret
     end
 
     #
@@ -57,12 +54,7 @@ module Mdextab
     # @return [Struct,nil] 生成されたトークンまたはnil(トークンが存在しない場合)
     # @note TBODY_STARTトークンが存在するかもしれないと判断されたときに呼ばれる
     def get_token_tbody_start(line, lineno)
-      if /^\s*<tbody>\s*$/.match?(line)
-        ret = create_token(:TBODY_START, { lineno: lineno })
-      else
-        ret = nil
-      end
-      ret
+      (create_token(:TBODY_START, { lineno: lineno }) if /^\s*<tbody>\s*$/.match?(line))
     end
 
     #
@@ -74,7 +66,7 @@ module Mdextab
     # @param cont [String] 現在行の中の:の並びを区切り文字列とした場合の右側の部分
     # @return [Struct,nil] 生成されたトークンまたはnil(トークンが存在しない場合)
     # @note 先頭が:のときに呼ばれる
-    def get_token_colon_start(line, lineno, nth, cont)
+    def get_token_colon_start(_line, lineno, nth, cont)
       if (m = /^th(.*)/.match(cont))
         cont2 = m[1]
         if (m2 = /^\s(.*)/.match(cont2))
@@ -112,12 +104,7 @@ module Mdextab
     # @return [Struct,nil] 生成されたトークンまたはnil(トークンが存在しない場合)
     # @note TABLE_ENDトークンが存在するかもしれないと判断されたときに呼ばれる
     def get_token_table_end(line, lineno)
-      if %r{^\s*</table>\s*$}.match?(line)
-        ret = create_token(:TABLE_END, { lineno: lineno })
-      else
-        ret = nil
-      end
-      ret
+      (create_token(:TABLE_END, { lineno: lineno }) if %r{^\s*</table>\s*$}.match?(line))
     end
 
     #
@@ -138,7 +125,7 @@ module Mdextab
         ret = get_token_table_start(line, lineno)
       when /^\s*<tbody/
         ret = get_token_tbody_start(line, lineno)
-      when /^\s*(\:+)(.*)$/
+      when /^\s*(:+)(.*)$/
         nth = Regexp.last_match(1).size
         cont = Regexp.last_match(2)
         ret = get_token_colon_start(line, lineno, nth, cont)

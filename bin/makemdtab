@@ -14,30 +14,30 @@ if ARGV.empty?
 end
 
 Simpleoptparse::Simpleoptparse.parse(ARGV, opts, banner, Mdextab::VERSION, nil) do |parser|
-  parser.on("--debug") {|_x| opts["debug"] = true }
-  parser.on("--verbose") {|_x| opts["verbose"] = true }
-  parser.on("--es path") {|x| opts["fnameStatic"] = x }
-  parser.on("--ev path") {|x| opts["fnameVariable"] = x }
-  parser.on("-t path", "--template") {|x| opts["template"] = opts["t"] = x }
-  parser.on("-y path", "--yaml") {|x| opts["yaml"] = opts["y"] = x }
-  parser.on("-o path", "--output") {|x| opts["output"] = opts["o"] = x }
-  parser.on("-d path", "--data") {|x| opts["data"] = opts["d"] = x }
+  parser.on("--debug") { |_x| opts["debug"] = true }
+  parser.on("--verbose") { |_x| opts["verbose"] = true }
+  parser.on("--es path") { |x| opts["fnameStatic"] = x }
+  parser.on("--ev path") { |x| opts["fnameVariable"] = x }
+  parser.on("-t path", "--template") { |x| opts["template"] = opts["t"] = x }
+  parser.on("-y path", "--yaml") { |x| opts["yaml"] = opts["y"] = x }
+  parser.on("-o path", "--output") { |x| opts["output"] = opts["o"] = x }
+  parser.on("-d path", "--data") { |x| opts["data"] = opts["d"] = x }
   parser.on("--dataop op") do |x|
-    if /^f/.match?(x.downcase)
-      opts["dataop"] = :FILE_INCLUDE
-    else
-      opts["dataop"] = :YAML_TO_MD
-    end
+    opts["dataop"] = if /^f/.match?(x.downcase)
+                       :FILE_INCLUDE
+                     else
+                       :YAML_TO_MD
+                     end
   end
 end
 
-if opts["debug"]
-  mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
-elsif opts["verbose"]
-  mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :verbose)
-else
-  mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
-end
+mes = if opts["debug"]
+        Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
+      elsif opts["verbose"]
+        Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :verbose)
+      else
+        Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
+      end
 
 unless opts["data"]
   puts("Not specified -data")
@@ -55,11 +55,11 @@ opts["data"] = File.expand_path(opts["data"])
 opts["output"] = File.expand_path(opts["output"])
 opts["yaml"] = File.expand_path(opts["yaml"]) if opts["yaml"]
 
-if opts["yaml"]
-  auxhs = Filex::Filex.checkAndLoadYamlfile(opts["yaml"], mes)
-else
-  auxhs = {}
-end
+auxhs = if opts["yaml"]
+          Filex::Filex.checkAndLoadYamlfile(opts["yaml"], mes)
+        else
+          {}
+        end
 
 x.makeMd2(opts["template"], auxhs)
 x.postProcess

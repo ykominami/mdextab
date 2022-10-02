@@ -1,0 +1,5 @@
+/vendor/
+*.code-workspace
+.rspec_status
+.bundle
+

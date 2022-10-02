@@ -70,18 +70,18 @@ module Mdextab
     #
     # @param debug [Symbol] デバッグ用フラグ true: デバッグ情報を付加する false: デバッグ情報を付加しない
     # @return [String] HTMLのTABLEタグとして文字列化したもの
-    def to_s(debug=false)
-      if @attr
-        if debug
-          str = %Q(<table #{@attr} lineno:#{@lineno}>)
-        else
-          str = %Q(<table #{@attr}>)
-        end
-      elsif debug
-        str = %Q(<table  lineno:#{@lineno}>)
-      else
-        str = %Q(<table>)
-      end
+    def to_s(debug: false)
+      str = if @attr
+              if debug
+                %(<table #{@attr} lineno:#{@lineno}>)
+              else
+                %(<table #{@attr}>)
+              end
+            elsif debug
+              %(<table  lineno:#{@lineno}>)
+            else
+              %(<table>)
+            end
 
       [str, @tbody.to_s, "</table>"].join("\n")
     end

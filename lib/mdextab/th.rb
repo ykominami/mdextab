@@ -41,9 +41,9 @@ module Mdextab
     # @return [String] HTMLのTHタグとして文字列化したもの
     def to_s
       if @attr.nil?
-        %Q(<th>#{@content}</th>)
+        %(<th>#{@content}</th>)
       else
-        %Q(<th #{@attr}>#{@content}</th>)
+        %(<th #{@attr}>#{@content}</th>)
       end
     end
   end
