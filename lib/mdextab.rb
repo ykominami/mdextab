@@ -17,14 +17,13 @@ module Mdextab
     require "mdextab/tbody"
     require "mdextab/td"
     require "mdextab/th"
-    require "mdextab/token"
     require "mdextab/tr"
     require "mdextab/makemdtab"
     require "mdextab/layer"
     require "messagex/loggerx"
     require "filex"
 
-    require "byebug"
+    require "debug"
 
     #
     # 初期化
@@ -57,9 +56,7 @@ module Mdextab
       end
 
       dir = File.dirname(o_fname)
-      if dir != "."
-        @mes.exc_make_directory(dir) { FileUtils.mkdir_p(dir) }
-      end
+      @mes.exc_make_directory(dir) { FileUtils.mkdir_p(dir) } if dir != "."
       @mes.exc_file_write(o_fname) { @output = File.open(o_fname, "w") }
 
       @token_op = Token.new(@mes)
@@ -81,7 +78,7 @@ module Mdextab
         IN_TH: { ELSE: :IN_TH, TH: :IN_TH, TD: :IN_TD, TABLE_START: :IN_TH, STAR_START: :IN_TH, STAR_END: :IN_TH },
         IN_TH_NO_TBODY: { ELSE: :IN_TH_NO_TBODY, TH: :IN_TH_NO_TBODY, TD: :IN_TD_NO_TBODY, TABLE_START: :IN_TH_NO_TBODY, STAR_START: :IN_TH_NO_TBODY, STAR_END: :IN_TH_NO_TBODY },
         IN_TD: { ELSE: :IN_TD, TH: :IN_TH, TD: :IN_TD, TBODY_END: :IN_TABLE, TABLE_START: :IN_TD, STAR_START: :IN_TD, START_END: :IN_TD },
-        IN_TD_NO_TBODY: { ELSE: :IN_TD_NO_TBODY, TH: :IN_TH_NO_TBODY, TD: :IN_TD_NO_TBODY, TABLE_START: :IN_TD_NO_TBODY, TABLE_END: :OUT_OF_TABLE, TBODY_END: :IN_TABLE, STAR_START: :IN_TD_NO_TBODY, STAR_END: :IN_TD_NO_TBODY },
+        IN_TD_NO_TBODY: { ELSE: :IN_TD_NO_TBODY, TH: :IN_TH_NO_TBODY, TD: :IN_TD_NO_TBODY, TABLE_START: :IN_TD_NO_TBODY, TABLE_END: :OUT_OF_TABLE, TBODY_END: :IN_TABLE, STAR_START: :IN_TD_NO_TBODY, STAR_END: :IN_TD_NO_TBODY }
       }
     end
 
@@ -100,7 +97,7 @@ module Mdextab
 
         @mes.output_debug("layer.size=#{@layer.size}")
         @mes.output_debug("token.kind=#{kind}")
-        @mes.output_debug(%Q!(source)#{lineno}:#{line}!)
+        @mes.output_debug(%!(source)#{lineno}:#{line}!)
         if @layer.cur_state.nil?
           @mes.output_error("(script)#{__LINE__}| @layer.cur_state=nil")
         else
@@ -136,12 +133,12 @@ module Mdextab
     # @param line [String] トークン出現行
     # @param lineno [String] トークン出現行の行番号
     # @return [Symbol] テーブル拡張向け構文解析での次の状態
-    def get_next_state(token, line, lineno)
+    def get_next_state(token, _line, lineno)
       kind = token.kind
       @mes.output_debug("#{__LINE__}|@layer.cur_state=#{@layer.cur_state} #{@layer.cur_state.class}")
       state_level1 = @states[@layer.cur_state]
       if state_level1.nil?
-        @mes.output_error(%Q(token.kind=#{kind} | cur_state=#{@layer.cur_state}))
+        @mes.output_error(%(token.kind=#{kind} | cur_state=#{@layer.cur_state}))
         @mes.output_error("=== state_level1 == nil")
         @mes.output_fatal("Next State is nil")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -222,7 +219,7 @@ module Mdextab
     # @param line [String] トークン出現行
     # @param lineno [String] トークン出現行の行番号
     # @return [void]
-    def process_one_line_for_start(token, line, lineno)
+    def process_one_line_for_start(token, _line, lineno)
       case token.kind
       when :TABLE_START
         @layer.table = Table.new(lineno, @mes, token.opt[:attr])
@@ -231,10 +228,10 @@ module Mdextab
         output_in_else(token.opt[:content])
       when :STAR_START
         @layer.star = true
-        output_in_else("*" + token.opt[:content])
+        output_in_else("*#{token.opt[:content]}")
       when :STAR_END
         @layer.star = false
-        output_in_else("*" + token.opt[:content])
+        output_in_else("*#{token.opt[:content]}")
       else
         @mes.output_fatal("In :START unknown tag=(#{token.kind}) in process_one_line_for_start")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -249,7 +246,7 @@ module Mdextab
     # @param line [String] トークン出現行
     # @param lineno [String] トークン出現行の行番号
     # @return [void]
-    def process_one_line_for_out_of_table(token, line, lineno)
+    def process_one_line_for_out_of_table(token, _line, lineno)
       case token.kind
       when :TABLE_START
         @layer.table = Table.new(lineno, @mes, token.opt[:attr])
@@ -257,13 +254,13 @@ module Mdextab
         output_in_else(token.opt[:content])
       when :STAR_START
         @layer.star = true
-        output_in_else("*" + token.opt[:content])
+        output_in_else("*#{token.opt[:content]}")
       when :STAR_END
         @layer.star = false
         output_in_else(token.opt[:content])
       when :TD
         # treat as :ELSE
-        output_in_else(":" + token.opt[:content])
+        output_in_else(":#{token.opt[:content]}")
       else
         @mes.output_fatal("In :OUT_OF_TABLE unknown tag=(#{token.kind}) in process_one_line_for_out_of_table")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -291,7 +288,7 @@ module Mdextab
     # @param line [String] トークン出現行
     # @param lineno [String] トークン出現行の行番号
     # @return [void]
-    def process_one_line_for_in_table(token, line, lineno)
+    def process_one_line_for_in_table(token, _line, lineno)
       case token.kind
       when :TBODY_START
         @layer.table.add_tbody(lineno)
@@ -310,10 +307,10 @@ module Mdextab
         @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
-        output_in_else("*" + token.opt[:content])
+        output_in_else("*#{token.opt[:content]}")
       when :STAR_END
         @layer.star = false
-        output_in_else("*" + token.opt[:content])
+        output_in_else("*#{token.opt[:content]}")
       else
         @mes.output_fatal("In :IN_TABLE unknown tag=(#{token.kind}) in process_one_line_for_in_table")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -328,7 +325,7 @@ module Mdextab
     # @param line [String] トークン出現行
     # @param lineno [String] トークン出現行の行番号
     # @return [void]
-    def process_one_line_for_in_table_body(token, line, lineno)
+    def process_one_line_for_in_table_body(token, _line, lineno)
       case token.kind
       when :TH
         @layer.table.add_th(lineno, token.opt[:content], token.opt[:nth], token.opt[:attr], @layer.star)
@@ -345,10 +342,10 @@ module Mdextab
         process_one_line_for_table_end(token)
       when :STAR_START
         @layer.star = true
-        output_in_else("*" + token.opt[:content])
+        output_in_else("*#{token.opt[:content]}")
       when :STAR_END
         @layer.star = false
-        output_in_else("*" + token.opt[:content])
+        output_in_else("*#{token.opt[:content]}")
       else
         @mes.output_fatal("In :IN_TABLE_BODY unknown tag=(#{token.kind}) in process_one_line_for_in_table_body")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -363,7 +360,7 @@ module Mdextab
     # @param line [String] トークン出現行
     # @param lineno [String] トークン出現行の行番号
     # @return [void]
-    def process_one_line_for_in_th(token, line, lineno)
+    def process_one_line_for_in_th(token, _line, lineno)
       case token.kind
       when :ELSE
         table_th_append_in_else(token.opt[:content])
@@ -375,10 +372,10 @@ module Mdextab
         @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
-        table_th_append_in_else("*" + token.opt[:content])
+        table_th_append_in_else("*#{token.opt[:content]}")
       when :STAR_END
         @layer.star = false
-        table_th_append_in_else("*" + token.opt[:content])
+        table_th_append_in_else("*#{token.opt[:content]}")
       else
         @mes.output_fatal("In :IN_TH unknown tag=(#{token.kind}) in process_one_line_for_in_th")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -393,7 +390,7 @@ module Mdextab
     # @param line [String] トークン出現行
     # @param lineno [String] トークン出現行の行番号
     # @return [void]
-    def process_one_line_for_in_th_no_tbody(token, line, lineno)
+    def process_one_line_for_in_th_no_tbody(token, _line, lineno)
       case token.kind
       when :ELSE
         table_th_append_in_else(token.opt[:content])
@@ -405,10 +402,10 @@ module Mdextab
         @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
-        table_th_append_in_else("*" + token.opt[:content])
+        table_th_append_in_else("*#{token.opt[:content]}")
       when :STAR_END
         @layer.star = false
-        table_th_append_in_else("*" + token.opt[:content])
+        table_th_append_in_else("*#{token.opt[:content]}")
       else
         @mes.output_fatal("In :IN_TH_NO_TBODY unknown tag=(#{token.kind}) in process_one_line_for_in_th_no_tbody")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -423,7 +420,7 @@ module Mdextab
     # @param line [String] トークン出現行
     # @param lineno [String] トークン出現行の行番号
     # @return [void]
-    def process_one_line_for_in_td(token, line, lineno)
+    def process_one_line_for_in_td(token, _line, lineno)
       case token.kind
       when :ELSE
         table_td_append_in_else(token.opt[:content])
@@ -437,10 +434,10 @@ module Mdextab
         @layer.process_nested_table_start(token, lineno, @fname)
       when :STAR_START
         @layer.star = true
-        table_td_append_in_else("*" + token.opt[:content])
+        table_td_append_in_else("*#{token.opt[:content]}")
       when :STAR_END
         @layer.star = false
-        table_td_append_in_else("*" + token.opt[:content])
+        table_td_append_in_else("*#{token.opt[:content]}")
       else
         @mes.output_fatal("In :IN_TD unknown tag=(#{token.kind}) in process_one_line_for_in_td")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")
@@ -455,7 +452,7 @@ module Mdextab
     # @param line [String] トークン出現行
     # @param lineno [String] トークン出現行の行番号
     # @return [void]
-    def process_one_line_for_in_td_no_tbody(token, line, lineno)
+    def process_one_line_for_in_td_no_tbody(token, _line, lineno)
       case token.kind
       when :ELSE
         table_td_append_in_else(token.opt[:content])
@@ -471,10 +468,10 @@ module Mdextab
         @layer.table.tbody_end
       when :STAR_START
         @layer.star = true
-        table_td_append_in_else("*" + token.opt[:content])
+        table_td_append_in_else("*#{token.opt[:content]}")
       when :STAR_END
         @layer.star = false
-        table_td_append_in_else("*" + token.opt[:content])
+        table_td_append_in_else("*#{token.opt[:content]}")
       else
         @mes.output_fatal("In :IN_TD_NO_TBODY unknown tag=(#{token.kind}) in process_one_line_for_in_td_no_tbody")
         @mes.output_fatal("@fname=#{@fname} | lineno=#{lineno}")

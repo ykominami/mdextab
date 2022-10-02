@@ -9,7 +9,7 @@ opts = {}
 banner = "Usage: bundle exec ruby bin/mdextab in_md_fname out_md_fname settng_yaml auxiliary_setting_yaml"
 
 Simpleoptparse::Simpleoptparse.parse(ARGV, opts, banner, Mdextab::VERSION, nil) do |parser|
-  parser.on("-d", "--debug") {|_x| opts["debug"] = true }
+  parser.on("-d", "--debug") { |_x| opts["debug"] = true }
 end
 
 fname = ARGV[0]

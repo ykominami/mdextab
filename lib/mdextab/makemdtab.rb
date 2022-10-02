@@ -1,3 +1,4 @@
+# テーブル拡張Markdownモジュール
 module Mdextab
   require "digest"
   require "pp"
@@ -24,15 +25,13 @@ module Mdextab
       @obj_by_yaml = obj_by_yaml
 
       @mes = mes
-      unless @mes
-        if opts[:debug]
-          @mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
-        elsif opts[:verbose]
-          @mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :verbose)
-        else
-          @mes = Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
-        end
-      end
+      @mes ||= if opts[:debug]
+                 Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :debug)
+               elsif opts[:verbose]
+                 Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0, :verbose)
+               else
+                 Messagex::Messagex.new("EXIT_CODE_NORMAL_EXIT", 0)
+               end
       @mes.add_exitcode("EXIT_CODE_ILLEGAL_DATAOP")
       Filex::Filex.setup(@mes)
 
@@ -93,7 +92,7 @@ module Mdextab
       else
         array = []
       end
-      array.map {|x| @mes.exc_file_write(@outputfname) { @output.puts(x) } }
+      array.map { |x| @mes.exc_file_write(@outputfname) { @output.puts(x) } }
     end
 
     #
@@ -108,17 +107,17 @@ module Mdextab
       # fileReadメソッドは、引数を読み込むべきファイルへのパスに変換して、ファイルを読み込む
 
       # fileReadメソッドで参照するparentDirという変数に、root_dirの値を割り当てる
-      objy = { "parentDir" => "%q!" + root_dir + "!" }
+      objy = { "parentDir" => "%q!#{root_dir}!" }
       # @eruby_variable_strにfileReadメソッドの定義が含まれる
       eruby_exanpded_str = ""
       if @eruby_variable_str
-        if @eruby_variable_str.empty?
-          eruby_exanpded_str = ""
-        else
-          # 変数parent_dirをobjyで定義された値に置換て、fileReadメソッドの定義を完成させる
-          # 置換して得られた文字列を、もう一度eRubyスクリプトにする
-          eruby_exanpded_str = ["<% ", Filex::Filex.expand_str(@eruby_variable_str, objy, @mes), " %>"].join("\n")
-        end
+        eruby_exanpded_str = if @eruby_variable_str.empty?
+                               ""
+                             else
+                               # 変数parent_dirをobjyで定義された値に置換て、fileReadメソッドの定義を完成させる
+                               # 置換して得られた文字列を、もう一度eRubyスクリプトにする
+                               ["<% ", Filex::Filex.expand_str(@eruby_variable_str, objy, @mes), " %>"].join("\n")
+                             end
       end
       # fileReadメソッド呼び出しを含むeRubyスクリプトファイルを読み込む
       mbstr = Filex::Filex.check_and_load_file(eruby_fname, @mes)
@@ -159,9 +158,7 @@ module Mdextab
       @mes.output_debug("dx=#{dx}")
       # eRubyスクリプトにdatayamlfnameの内容を置換用ハッシュとして適用して、テーブル拡張Markdown形式に変換する
       # Filex::Filex.expand_strに渡すハッシュは、エラーメッセージに用いるためのものであり、eRubyスクリプトとは無関係である
-      array = [Filex::Filex.expand_str(dx, objy, @mes, { "datayamlfname" => datayamlfname, "templatefile" => templatefile })]
-
-      array
+      [Filex::Filex.expand_str(dx, objy, @mes, { "datayamlfname" => datayamlfname, "templatefile" => templatefile })]
     end
 
     #
