@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mdextab (0.1.8)
+    mdextab (0.1.9)
       bundler
       debug
       erubis
