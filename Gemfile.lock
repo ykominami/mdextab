@@ -19,9 +19,11 @@ GEM
       reline (>= 0.3.1)
     diff-lcs (1.5.0)
     erubis (2.7.0)
-    filex (0.1.7)
+    filex (0.1.8)
+      bundler
       erubis
       messagex
+      rake (~> 13.0)
     io-console (0.5.11)
     irb (1.4.1)
       reline (>= 0.3.0)
