@@ -36,20 +36,20 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency "bundler"
-  spec.add_runtime_dependency "rake", "~> 13.0"
+  #  spec.add_runtime_dependency "bundler"
+  #  spec.add_runtime_dependency "rake", "~> 13.0"
 
-  spec.add_runtime_dependency "debug"
-  spec.add_runtime_dependency "erubis"
-  spec.add_runtime_dependency "filex"
-  spec.add_runtime_dependency "messagex"
-  spec.add_runtime_dependency "simpleoptparse"
-  spec.add_development_dependency "rspec", "~> 3.0"
-  spec.add_development_dependency "rubocop"
-  spec.add_development_dependency "rubocop-performance"
-  spec.add_development_dependency "rubocop-rake"
-  spec.add_development_dependency "rubocop-rspec"
-  spec.add_development_dependency 'yard'
+  #  spec.add_runtime_dependency "debug"
+  #  spec.add_runtime_dependency "erubis"
+  #  spec.add_runtime_dependency "filex"
+  #  spec.add_runtime_dependency "messagex"
+  #  spec.add_runtime_dependency "simpleoptparse"
+  #  spec.add_development_dependency "rspec", "~> 3.0"
+  #  spec.add_development_dependency "rubocop"
+  #  spec.add_development_dependency "rubocop-performance"
+  #  spec.add_development_dependency "rubocop-rake"
+  #  spec.add_development_dependency "rubocop-rspec"
+  #  spec.add_development_dependency 'yard'
 
   spec.metadata['rubygems_mfa_required'] = 'true'
 end

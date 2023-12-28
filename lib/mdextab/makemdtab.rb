@@ -1,7 +1,6 @@
 # テーブル拡張Markdownモジュール
 module Mdextab
   require "digest"
-  require "pp"
   require "filex"
 
   #
