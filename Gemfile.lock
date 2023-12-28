@@ -2,13 +2,6 @@ PATH
   remote: .
   specs:
     mdextab (0.1.9)
-      bundler
-      debug
-      erubis
-      filex
-      messagex
-      rake (~> 13.0)
-      simpleoptparse
 
 GEM
   remote: https://rubygems.org/
