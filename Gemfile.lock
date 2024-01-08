@@ -12,11 +12,9 @@ GEM
       reline (>= 0.3.8)
     diff-lcs (1.5.0)
     erubis (2.7.0)
-    filex (0.1.8)
-      bundler
+    filex (0.1.7)
       erubis
       messagex
-      rake (~> 13.0)
     io-console (0.7.1)
     irb (1.11.0)
       rdoc
@@ -25,7 +23,7 @@ GEM
     language_server-protocol (3.17.0.3)
     messagex (0.1.5)
     parallel (1.24.0)
-    parser (3.2.2.4)
+    parser (3.3.0.2)
       ast (~> 2.4.1)
       racc
     psych (5.1.2)
@@ -35,7 +33,7 @@ GEM
     rake (13.1.0)
     rdoc (6.6.2)
       psych (>= 4.0.0)
-    regexp_parser (2.8.3)
+    regexp_parser (2.9.0)
     reline (0.4.1)
       io-console (~> 0.5)
     rexml (3.2.6)
@@ -69,9 +67,9 @@ GEM
       rubocop (~> 1.41)
     rubocop-factory_bot (2.24.0)
       rubocop (~> 1.33)
-    rubocop-performance (1.15.0)
-      rubocop (>= 1.7.0, < 2.0)
-      rubocop-ast (>= 0.4.0)
+    rubocop-performance (1.20.1)
+      rubocop (>= 1.48.1, < 2.0)
+      rubocop-ast (>= 1.30.0, < 2.0)
     rubocop-rake (0.6.0)
       rubocop (~> 1.0)
     rubocop-rspec (2.25.0)
