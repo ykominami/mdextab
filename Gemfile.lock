@@ -7,7 +7,8 @@ GEM
   remote: https://rubygems.org/
   specs:
     ast (2.4.2)
-    debug (1.9.2)
+    date (3.4.1)
+    debug (1.10.0)
       irb (~> 1.10)
       reline (>= 0.3.8)
     diff-lcs (1.5.1)
@@ -15,9 +16,9 @@ GEM
     filex (0.1.7)
       erubis
       messagex
-    io-console (0.7.2)
-    irb (1.12.0)
-      rdoc
+    io-console (0.8.0)
+    irb (1.14.3)
+      rdoc (>= 4.0.0)
       reline (>= 0.4.2)
     json (2.9.1)
     language_server-protocol (3.17.0.3)
@@ -26,12 +27,13 @@ GEM
     parser (3.3.6.0)
       ast (~> 2.4.1)
       racc
-    psych (5.1.2)
+    psych (5.2.2)
+      date
       stringio
     racc (1.8.1)
     rainbow (3.1.1)
     rake (13.2.1)
-    rdoc (6.7.0)
+    rdoc (6.10.0)
       psych (>= 4.0.0)
     regexp_parser (2.10.0)
     reline (0.5.0)
@@ -70,7 +72,7 @@ GEM
       rubocop (~> 1.61)
     ruby-progressbar (1.13.0)
     simpleoptparse (0.1.2)
-    stringio (3.1.0)
+    stringio (3.1.2)
     unicode-display_width (2.6.0)
     yard (0.9.37)
 
