@@ -1,3 +1,6 @@
 [submodule "data"]
 	path = data
 	url = https://nlightsystem.com/gogs/devconf-guest/devconf-guest-data.git
+[submodule "wiki"]
+	path = wiki
+	url = https://github.com/ykominami/mdextab.wiki.git
