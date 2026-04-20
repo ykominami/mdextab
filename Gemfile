@@ -14,7 +14,7 @@ gem "rake", "~> 13.3"
 gem "simpleoptparse"
 
 group :development do
-  gem 'yard', "~> 0.9.40"
+  gem 'yard', "~> 0.9.43"
 end
 
 group :development, :test, optional: true do
