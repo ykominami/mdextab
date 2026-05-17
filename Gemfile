@@ -10,7 +10,7 @@ gem "debug"
 gem "erubis"
 gem "filex"
 gem "messagex"
-gem "rake", "~> 13.3"
+gem "rake", "~> 13.4"
 gem "simpleoptparse"
 
 group :development do
