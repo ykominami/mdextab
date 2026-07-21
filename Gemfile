@@ -10,11 +10,11 @@ gem "debug"
 gem "erubis"
 gem "filex"
 gem "messagex"
-gem "rake", "~> 13.3"
+gem "rake", "~> 13.4"
 gem "simpleoptparse"
 
 group :development do
-  gem 'yard', "~> 0.9.40"
+  gem 'yard', "~> 0.9.45"
 end
 
 group :development, :test, optional: true do
